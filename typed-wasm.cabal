@@ -1,0 +1,49 @@
+cabal-version:      3.4
+name:               typed-wasm
+version:            0.1.0.0
+-- synopsis:
+-- description:
+license:            MIT
+license-file:       LICENSE
+author:             Ed Wastell
+maintainer:         ed@wastell.co.uk
+-- copyright:
+category:           Language
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common shared
+  ghc-options: -Wincomplete-patterns
+  default-language: GHC2021
+  default-extensions: GADTs
+    , DataKinds
+    , TypeFamilies
+    , TemplateHaskell
+    , UndecidableInstances
+    , OverloadedStrings
+    , FunctionalDependencies
+    , LambdaCase
+    , DerivingStrategies
+  build-depends: base ^>= 4.18.0.0
+    , free
+    , singletons
+    , singletons-th
+    , singletons-base
+    , text
+
+library
+  import: shared
+  exposed-modules:  TypedWasm.Instruction
+    , TypedWasm.Eval
+  hs-source-dirs:   src
+
+test-suite typed-wasm-test
+  import: shared
+  type:             exitcode-stdio-1.0
+  other-modules: TypedWasm.Test.Eval
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends: typed-wasm
+    , tasty
+    , tasty-hunit

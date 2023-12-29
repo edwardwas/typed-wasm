@@ -43,6 +43,12 @@ data RefNamed (m :: Mutability) (nt :: NumericType) = RefNamed Locality Text
 
 newtype FuncNamed (is :: [NumericType]) (o :: Maybe NumericType) = FuncName Text
 
+data SExprTarget
+
+instance WasmTarget SExprTarget where
+    type TargetFunction SExprTarget = FuncNamed
+    type TargetReference SExprTarget = RefNamed
+
 renderNumericType :: SNumericType t -> Text
 renderNumericType SI32 = "i32"
 renderNumericType SF32 = "f32"
@@ -55,7 +61,7 @@ renderNumericValue (NVF32 n) = T.pack (show n)
 renderNumericValue (NVI64 n) = T.pack (show n)
 renderNumericValue (NVF64 n) = T.pack (show n)
 
-instructionToSExprs :: Instruction FuncNamed RefNamed is os -> [SExpr]
+instructionToSExprs :: Instruction SExprTarget is os -> [SExpr]
 instructionToSExprs (InstrConcat a b) =
     instructionToSExprs a
         <> instructionToSExprs b
@@ -97,7 +103,7 @@ instructionToSExprs (InstrIf _ (BlockSingleReturn sType ifTrue) (BlockSingleRetu
         ]
     ]
 
-functionDefinitionToSExpr :: FunctionDefinition FuncNamed RefNamed is o -> SExpr
+functionDefinitionToSExpr :: FunctionDefinition SExprTarget is o -> SExpr
 functionDefinitionToSExpr = helper [] [] 0
   where
     finalHelper paramList localList resultList body =
@@ -112,7 +118,7 @@ functionDefinitionToSExpr = helper [] [] 0
         [SExpr] ->
         [SExpr] ->
         Int ->
-        FunctionDefinition FuncNamed RefNamed is' o' ->
+        FunctionDefinition SExprTarget is' o' ->
         SExpr
     helper paramList localList n (FDWithLocal sty k) =
         helper paramList (atomList ["local", renderNumericType sty] : localList) (n + 1)
@@ -138,7 +144,7 @@ functionDefinitionToSExpr = helper [] [] 0
             is
     helper paramList localList _ (FDBody (BlockNoReturn is)) = finalHelper paramList localList [] is
 
-moduleToSExpr :: Module FuncNamed RefNamed -> SExpr
+moduleToSExpr :: Module SExprTarget -> SExpr
 moduleToSExpr = helper (0 :: Int) (0 :: Int) []
   where
     helper _ _ soFar ModuleBase = SExprList ("module" : reverse soFar)
@@ -170,7 +176,7 @@ moduleToSExpr = helper (0 :: Int) (0 :: Int) []
             )
             next
 
-moduleToWatFile :: Module FuncNamed RefNamed -> FilePath -> IO ()
+moduleToWatFile :: Module SExprTarget -> FilePath -> IO ()
 moduleToWatFile m path =
     T.writeFile path
         . renderStrict

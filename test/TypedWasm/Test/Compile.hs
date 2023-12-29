@@ -14,7 +14,7 @@ import TypedWasm.SExpr (moduleToWatFile)
 
 data ModuleTest = ModuleTest
     { moduleTestName :: String
-    , moduleTestModule :: forall f r. ModuleBuilder f r ()
+    , moduleTestModule :: forall wt. ModuleBuilder wt ()
     }
 
 moduleTestTree :: ModuleTest -> TestTree
@@ -28,7 +28,7 @@ moduleTestTree ModuleTest{..} =
             liftIO
                 $ moduleToWatFile
                     (buildModule moduleTestModule)
-                    ("testWatFiles/" <> moduleTestName <> ".wat") 
+                    ("testWatFiles/" <> moduleTestName <> ".wat")
             _ <-
                 run
                     "wat2wasm"

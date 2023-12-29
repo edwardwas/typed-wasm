@@ -1,71 +1,14 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-
 module TypedWasm.Instruction where
 
 import Control.Category
-import Control.Monad.Free
-import Data.Int
+import Control.Monad.Cont
 import Data.Kind (Type)
 import Data.Singletons
-import Data.Singletons.TH
-import Data.String.Singletons
 import Data.Text (Text)
-import Prelude.Singletons
+import TypedWasm.Numeric
 import Prelude hiding (id, (.))
 
-$( singletons
-    [d|
-        data NumericType = I32 | I64 | F32 | F64
-            deriving (Eq, Show)
-        |]
- )
-
-$( singletons
-    [d|
-        data Mutability = Immutable | Mutable
-            deriving (Eq, Show)
-        |]
- )
-
--- | The Haskell representation of WASM stack values
-data NumericVal (n :: NumericType) where
-    NVI32 :: Int32 -> NumericVal 'I32
-    NVI64 :: Integer -> NumericVal 'I64
-    NVF32 :: Float -> NumericVal 'F32
-    NVF64 :: Double -> NumericVal 'F64
-
-deriving instance Eq (NumericVal n)
-deriving instance Show (NumericVal n)
-
--- | We need the `SingI` instance here so that we can construct `NumericValue`s with `fromInteger`
-instance (SingI n) => Num (NumericVal n) where
-    fromInteger x = case sing @n of
-        SI32 -> NVI32 $ fromInteger x
-        SI64 -> NVI64 $ fromInteger x
-        SF32 -> NVF32 $ fromInteger x
-        SF64 -> NVF64 $ fromInteger x
-    NVI32 a + NVI32 b = NVI32 (a + b)
-    NVI64 a + NVI64 b = NVI64 (a + b)
-    NVF32 a + NVF32 b = NVF32 (a + b)
-    NVF64 a + NVF64 b = NVF64 (a + b)
-    NVI32 a * NVI32 b = NVI32 (a * b)
-    NVI64 a * NVI64 b = NVI64 (a * b)
-    NVF32 a * NVF32 b = NVF32 (a * b)
-    NVF64 a * NVF64 b = NVF64 (a * b)
-    NVI32 a - NVI32 b = NVI32 (a - b)
-    NVI64 a - NVI64 b = NVI64 (a - b)
-    NVF32 a - NVF32 b = NVF32 (a - b)
-    NVF64 a - NVF64 b = NVF64 (a - b)
-    abs (NVI32 a) = NVI32 (abs a)
-    abs (NVI64 a) = NVI64 (abs a)
-    abs (NVF32 a) = NVF32 (abs a)
-    abs (NVF64 a) = NVF64 (abs a)
-    signum (NVI32 a) = NVI32 (signum a)
-    signum (NVI64 a) = NVI64 (signum a)
-    signum (NVF32 a) = NVF32 (signum a)
-    signum (NVF64 a) = NVF64 (signum a)
-
-type FuncKind = [NumericType] -> [NumericType] -> Type
+type FuncKind = [NumericType] -> Maybe NumericType -> Type
 
 type RefKind = Mutability -> NumericType -> Type
 
@@ -74,83 +17,196 @@ type family ConcatList as bs where
     ConcatList '[] bs = bs
     ConcatList (a ': as) bs = a ': ConcatList as bs
 
-{- | WASM instructions
+-- | If @ma@ is `Just`, prepend it to @bs@. Otherwise this is just @bs@
+type family PrependMaybe ma bs where
+    PrependMaybe 'Nothing bs = bs
+    PrependMaybe ('Just a) bs = a ': bs
 
-More accurately, this is a block of instructions.
+data Block rf g is o where
+    BlockNoReturn :: Instruction rf g is '[] -> Block rf g is 'Nothing
+    BlockSingleReturn :: Sing o -> Instruction rf g is '[o] -> Block rf g is ('Just o)
+
+blockSingleReturn :: (SingI o) => Instruction rf g is '[o] -> Block rf g is ('Just o)
+blockSingleReturn = BlockSingleReturn sing
+
+{- | A block of WASM instructions.
+
+This has may type variables. They are as follows:
+
+* @fr@ - The types of wasm functions. Functions cannot be defined in instructions,
+they must be defined at the top level. Hence there are now ways to produce @fr@s here,
+just ways to consume them.
+* @g@ - The types of top level references. Like functions, they cannot be defined here,
+only consumed.
+* @is@ - A type level list describing the stack before this operation
+* @os@ - A type level list describing the stack after this operation.
+
+There are two subtle points around polymorphism to keep in mind here.
+
+Firstly, While constructing `Instructions` one should keep @fr@ and @g@ as
+polymorphic as possible. Functions that consume `Instructions` will instantiate
+them as required.
+
+Secondly, both @is@ and @os@ should be written with a polymorphic tail. This
+allows them to be used in more places
 -}
 data
     Instruction
         (fr :: FuncKind)
-        (r :: RefKind)
+        (g :: RefKind)
         (is :: [NumericType])
         (os :: [NumericType])
     where
-    InstrConcat :: Instruction fr g as bs -> Instruction fr g bs cs -> Instruction fr g as cs
-    InstrNOP :: Instruction fr g xs xs
-    InstrDrop :: Instruction fr g (x ': xs) xs
-    InstrConst :: SNumericType t -> NumericVal t -> Instruction fr g xs (t ': xs)
-    InstrAdd :: SNumericType t -> Instruction fr g (t ': t ': xs) (t ': xs)
-    InstrMul :: SNumericType t -> Instruction fr g (t ': t ': xs) (t ': xs)
-    InstrSub :: SNumericType t -> Instruction fr g (t ': t ': xs) (t ': xs)
-    InstrNegate :: SNumericType t -> Instruction fr g (t ': xs) (t ': xs)
-    InstrAbs :: SNumericType t -> Instruction fr g (t ': xs) (t ': xs)
-    InstrGlobalGet :: g m t -> Instruction fr g xs (t ': xs)
-    InstrGlobalSet :: g 'Mutable t -> Instruction fr g (t ': xs) xs
+    -- | This is no a true instruction, but rather a combination of instructions. This whould
+    -- perform the first `Instruction` and then the second.
+    --
+    -- This is used as `.` in the `Category` instance
+    InstrConcat ::
+        Instruction fr g as bs ->
+        Instruction fr g bs cs ->
+        Instruction fr g as cs
+    -- | Perform no actions. This is `id` in the `Category` instance
+    InstrNOP ::
+        Instruction fr g xs xs
+    -- | Drop the head of the stack
+    InstrDrop ::
+        Instruction fr g (x ': xs) xs
+    -- | Push a constant onto the stack
+    InstrConst ::
+        SNumericType t ->
+        NumericVal t ->
+        Instruction fr g xs (t ': xs)
+    -- | Add the top two elements on the stack
+    InstrAdd ::
+        SNumericType t ->
+        Instruction fr g (t ': t ': xs) (t ': xs)
+    -- | Multiply the top two elements on the stack
+    InstrMul ::
+        SNumericType t ->
+        Instruction fr g (t ': t ': xs) (t ': xs)
+    -- | Subtract the second element of the stack from the first
+    InstrSub ::
+        SNumericType t ->
+        Instruction fr g (t ': t ': xs) (t ': xs)
+    -- | Read a global reference
+    InstrGlobalGet ::
+        g m t ->
+        Instruction fr g xs (t ': xs)
+    -- | Alter a global reference
+    InstrGlobalSet ::
+        g 'Mutable t ->
+        Instruction fr g (t ': xs) xs
+    -- | Call a function reference
     InstrCallFunc ::
-        (SingI is, SingI os) =>
+        (SingI is, SingI o) =>
         Sing xs ->
-        fr is os ->
-        Instruction fr g (ConcatList is xs) (ConcatList os xs)
-    InstrIf :: Instruction fr g is os -> Instruction fr g is os -> Instruction fr g ('I32 ': is) os
+        fr is o ->
+        Instruction fr g (ConcatList is xs) (PrependMaybe o xs)
+    InstrIf ::
+        Sing os ->
+        Block fr g '[] o ->
+        Block fr g '[] o ->
+        Instruction fr g ('I32 ': is) (PrependMaybe o os)
 
 instance Category (Instruction fr global) where
     id = InstrNOP
     (.) = flip InstrConcat
 
 instrConst :: (SingI t) => NumericVal t -> Instruction f g xs (t ': xs)
-instrConst n = InstrConst sing n
+instrConst = InstrConst sing
 
 instrAdd :: (SingI t) => Instruction f g (t ': t ': xs) (t ': xs)
 instrAdd = InstrAdd sing
 
-class EmptyOrSingle xs
-instance EmptyOrSingle '[]
-instance EmptyOrSingle '[x]
+instrIfReturn ::
+    (SingI os) =>
+    Block rf g '[] ('Just o) ->
+    Block rf g '[] ('Just o) ->
+    Instruction rf g ('I32 ': is) (o ': os)
+instrIfReturn = InstrIf sing
 
-data FunctionDefinition f r is os where
+instrIfNoReturn ::
+    (SingI os) =>
+    Block rf g '[] 'Nothing ->
+    Block rf g '[] 'Nothing ->
+    Instruction rf g ('I32 ': is) os
+instrIfNoReturn = InstrIf sing
+
+{- | Construct a type save function definition.
+
+For an explanation of the type parameters see `Instruction`
+-}
+data
+    FunctionDefinition
+        (f :: FuncKind)
+        (r :: RefKind)
+        (is :: [NumericType])
+        (o :: Maybe NumericType)
+    where
+    -- | Augment a `FunctionDefinition` with a local parameter. Not that this does
+    -- not alter the input type
     FDWithLocal ::
-        (SingI t) =>
+        SNumericType t ->
         (r m t -> FunctionDefinition f r is os) ->
         FunctionDefinition f r is os
+    -- | Augment a `FunctionDefinition` with a local parameter that takes from the stack
+    -- when called
     FDWithParam ::
+        SNumericType t ->
         (r m t -> FunctionDefinition f r is os) ->
         FunctionDefinition f r (t ': is) os
-    FDBody :: Instruction f r '[] os -> FunctionDefinition f r '[] os
+    FDBody :: Block f r '[] o -> FunctionDefinition f r '[] o
 
-data ModuleBuilderF (fr :: FuncKind) (global :: RefKind) (a :: Type) where
-    AddGlobal :: SMutability m -> NumericVal t -> (g m t -> a) -> ModuleBuilderF fr g a
-    DeclareFunc ::
-        (EmptyOrSingle os) =>
-        FunctionDefinition f r is os ->
-        (f is os -> a) ->
-        ModuleBuilderF f r a
-    ExportFunction :: Text -> fr is os -> a -> ModuleBuilderF fr g a
+fdWithParam ::
+    (SingI t) =>
+    (r m t -> FunctionDefinition f r is os) ->
+    FunctionDefinition f r (t ': is) os
+fdWithParam = FDWithParam sing
 
-instance Functor (ModuleBuilderF fr g) where
-    fmap f (AddGlobal s n k) = AddGlobal s n (f <$> k)
-    fmap f (DeclareFunc is k) = DeclareFunc is (f <$> k)
-    fmap f (ExportFunction name fr a) = ExportFunction name fr (f a)
+fdWithLocal ::
+    (SingI t) =>
+    (r m t -> FunctionDefinition f r is os) ->
+    FunctionDefinition f r is os
+fdWithLocal = FDWithLocal sing
 
-type ModuleBuilder fr g = Free (ModuleBuilderF fr g)
+fdResultBody ::
+    (SingI o) =>
+    Instruction f r '[] '[o] ->
+    FunctionDefinition f r '[] ('Just o)
+fdResultBody = FDBody . BlockSingleReturn sing
 
-addImmutableGlobal :: NumericVal t -> ModuleBuilder fr g (g 'Immutable t)
-addImmutableGlobal n = liftF $ AddGlobal sing n id
+{- | A WASM module.
 
-addMutableGlobal :: NumericVal t -> ModuleBuilder fr g (g 'Mutable t)
-addMutableGlobal n = liftF $ AddGlobal sing n id
+This can be quite difficult to work with. One should prefer `ModuleBuilder`, which provides
+a monadic interface to creating thes values
+-}
+data Module (f :: FuncKind) (r :: RefKind) where
+    ModuleBase :: Module f r
+    ModuleFunction :: FunctionDefinition f r is o -> (f is o -> Module f r) -> Module f r
+    ModuleGlobal :: (SingI t) => SMutability m -> NumericVal t -> (r m t -> Module f r) -> Module f r
+    ModuleExportFunc :: Text -> f is o -> Module f r -> Module f r
 
-declareFunc :: (EmptyOrSingle os) => (MonadFree (ModuleBuilderF f r) m) => FunctionDefinition f r is os -> m (f is os)
-declareFunc func = liftF $ DeclareFunc func id
+{- | A conviniet way to construct `Module`s.
 
-exportFunc :: Text -> fr is os -> ModuleBuilder fr g ()
-exportFunc txt fr = liftF $ ExportFunction txt fr ()
+Rather that building a `Module` manually, one should prefer to construct a `ModuleBuilder` and
+call `buildModule`
+-}
+newtype ModuleBuilder (f :: FuncKind) (r :: RefKind) (a :: Type) = ModuleBuilder (Cont (Module f r) a)
+    deriving newtype (Functor, Applicative, Monad)
+
+-- | Create a `Module` from a `ModuleBuilder`
+buildModule :: ModuleBuilder f r a -> Module f r
+buildModule (ModuleBuilder c) = runCont c (const ModuleBase)
+
+-- | Add a function to the module and get a reference to it
+moduleFunction :: FunctionDefinition f r is o -> ModuleBuilder f r (f is o)
+moduleFunction fd = ModuleBuilder $ cont (ModuleFunction fd)
+
+moduleGlobal ::
+    (SingI m, SingI t) =>
+    NumericVal t ->
+    ModuleBuilder f r (r m t)
+moduleGlobal nv = ModuleBuilder $ cont $ ModuleGlobal sing nv
+
+moduleExportFunc :: Text -> f is o -> ModuleBuilder f r ()
+moduleExportFunc name fr = ModuleBuilder $ cont (\f -> ModuleExportFunc name fr $ f ())

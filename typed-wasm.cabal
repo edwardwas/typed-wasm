@@ -14,7 +14,7 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common shared
-  ghc-options: -Wincomplete-patterns
+  ghc-options: -Wincomplete-patterns -Wall
   default-language: GHC2021
   default-extensions: GADTs
     , DataKinds
@@ -31,19 +31,24 @@ common shared
     , singletons-th
     , singletons-base
     , text
+    , mtl
+    , prettyprinter
 
 library
   import: shared
   exposed-modules:  TypedWasm.Instruction
     , TypedWasm.Eval
+    , TypedWasm.Numeric
+    , TypedWasm.SExpr
   hs-source-dirs:   src
 
 test-suite typed-wasm-test
   import: shared
   type:             exitcode-stdio-1.0
-  other-modules: TypedWasm.Test.Eval
+  other-modules: TypedWasm.Test.Compile
   hs-source-dirs:   test
   main-is:          Main.hs
   build-depends: typed-wasm
     , tasty
     , tasty-hunit
+    , shelly

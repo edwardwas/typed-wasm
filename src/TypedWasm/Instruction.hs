@@ -92,7 +92,12 @@ data
         Block wt '[] o ->
         Block wt '[] o ->
         Instruction wt ('I32 ': is) (PrependMaybe o os)
+    -- | Jump to this target
     InstrJump :: TargetJumpTarget wt is os -> Instruction wt is os
+    -- | Set up a new jump target.
+    --
+    -- This will run the `Instruction` created by the continuation. When ever one jumps to the
+    -- given jump target this `Instruction` will restart
     InstrLoop :: (TargetJumpTarget wt '[] '[] -> Instruction wt '[] '[]) -> Instruction wt is os
 
 instance Category (Instruction wt) where

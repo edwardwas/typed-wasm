@@ -48,8 +48,13 @@ instance WasmTarget (EvalTarget st) where
     type TargetReference (EvalTarget st) = EvalReference st
     type TargetJumpTarget (EvalTarget st) = EvalJump st
 
-evaluateInstruction :: forall st is os. Instruction (EvalTarget st) is os -> ValueStack is -> ST st (ValueStack os)
-evaluateInstruction (InstrConcat a b) s = evaluateInstruction a s >>= evaluateInstruction b
+evaluateInstruction ::
+    forall st is os.
+    Instruction (EvalTarget st) is os ->
+    ValueStack is ->
+    ST st (ValueStack os)
+evaluateInstruction (InstrConcat a b) s =
+    evaluateInstruction a s >>= evaluateInstruction b
 evaluateInstruction InstrNOP s = pure s
 evaluateInstruction InstrDrop (ConsValueStack _ s) = pure s
 evaluateInstruction (InstrConst _ v) s = pure $ ConsValueStack v s
@@ -67,14 +72,19 @@ evaluateInstruction (InstrCallFunc _ ef) stack = case ef of
         let (as, bs) = splitValueStack sing stack
         func as
         return bs
-evaluateInstruction (InstrIf trueBranch falseBranch) (ConsValueStack (NVI32 check) stack) = case branch of
-    BlockNoReturn instr -> stack <$ evaluateInstruction instr EmptyValueStack
-    BlockSingleReturn _ instr ->
-        evaluateInstruction instr EmptyValueStack >>= \case
-            ConsValueStack nv EmptyValueStack -> pure $ ConsValueStack nv stack
-  where
-    branch = if check == 0 then falseBranch else trueBranch
+evaluateInstruction
+    (InstrIf trueBranch falseBranch)
+    (ConsValueStack (NVI32 check) stack) = case branch of
+        BlockNoReturn instr -> stack <$ evaluateInstruction instr EmptyValueStack
+        BlockSingleReturn _ instr ->
+            evaluateInstruction instr EmptyValueStack >>= \case
+                ConsValueStack nv EmptyValueStack -> pure $ ConsValueStack nv stack
+      where
+        branch = if check == 0 then falseBranch else trueBranch
 evaluateInstruction (InstrJump (EvalJump f)) stack = f stack
 evaluateInstruction (InstrLoop k) stack = do
-    _ :: ValueStack '[] <- evaluateInstruction (k $ EvalJump (evaluateInstruction (InstrLoop k))) EmptyValueStack
+    _ :: ValueStack '[] <-
+        evaluateInstruction
+            (k $ EvalJump (evaluateInstruction (InstrLoop k)))
+            EmptyValueStack
     pure stack

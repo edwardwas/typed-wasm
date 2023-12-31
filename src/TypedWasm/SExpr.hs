@@ -94,14 +94,14 @@ instructionToSExprs _ (InstrGlobalSet (RefNamed loc name)) =
         ]
     ]
 instructionToSExprs _ (InstrCallFunc _ (FuncName name)) = [atomList ["call", name]]
-instructionToSExprs jd (InstrIf _ (BlockNoReturn ifTrue) (BlockNoReturn ifFalse)) =
+instructionToSExprs jd (InstrIf (BlockNoReturn ifTrue) (BlockNoReturn ifFalse)) =
     [ SExprList
         [ SExprAtom "if"
         , SExprList ("then" : instructionToSExprs (succ jd) ifTrue)
         , SExprList ("else" : instructionToSExprs (succ jd) ifFalse)
         ]
     ]
-instructionToSExprs jd (InstrIf _ (BlockSingleReturn sType ifTrue) (BlockSingleReturn _ ifFalse)) =
+instructionToSExprs jd (InstrIf (BlockSingleReturn sType ifTrue) (BlockSingleReturn _ ifFalse)) =
     [ SExprList
         [ "if"
         , atomList ["result", renderNumericType sType]

@@ -88,17 +88,16 @@ data
         TargetFunction wt is o ->
         Instruction wt (ConcatList is xs) (PrependMaybe o xs)
     InstrIf ::
-        Sing os ->
         Block wt '[] o ->
         Block wt '[] o ->
-        Instruction wt ('I32 ': is) (PrependMaybe o os)
+        Instruction wt ('I32 ': is) (PrependMaybe o is)
     -- | Jump to this target
     InstrJump :: TargetJumpTarget wt is os -> Instruction wt is os
     -- | Set up a new jump target.
     --
     -- This will run the `Instruction` created by the continuation. When ever one jumps to the
     -- given jump target this `Instruction` will restart
-    InstrLoop :: (TargetJumpTarget wt '[] '[] -> Instruction wt '[] '[]) -> Instruction wt is os
+    InstrLoop :: (TargetJumpTarget wt '[] '[] -> Instruction wt '[] '[]) -> Instruction wt xs xs
 
 instance Category (Instruction wt) where
     id = InstrNOP
@@ -111,18 +110,16 @@ instrAdd :: (SingI t) => Instruction wt (t ': t ': xs) (t ': xs)
 instrAdd = InstrAdd sing
 
 instrIfReturn ::
-    (SingI os) =>
     Block wt '[] ('Just o) ->
     Block wt '[] ('Just o) ->
-    Instruction wt ('I32 ': is) (o ': os)
-instrIfReturn = InstrIf sing
+    Instruction wt ('I32 ': is) (o ': is)
+instrIfReturn = InstrIf
 
 instrIfNoReturn ::
-    (SingI os) =>
     Block wt '[] 'Nothing ->
     Block wt '[] 'Nothing ->
-    Instruction wt ('I32 ': is) os
-instrIfNoReturn = InstrIf sing
+    Instruction wt ('I32 ': is) is
+instrIfNoReturn = InstrIf
 
 {- | Construct a type save function definition.
 

@@ -26,6 +26,7 @@ moduleTestTree :: ModuleTest -> TestTree
 moduleTestTree ModuleTest{..} =
     testCase moduleTestName $ do
         shelly $ withTmpDir $ \runningDir -> do
+            mkdir_p "testWatFiles"
             liftIO
                 $ moduleToWatFile
                     (buildModule moduleTestModule)

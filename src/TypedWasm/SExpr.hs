@@ -2,6 +2,7 @@ module TypedWasm.SExpr where
 
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding qualified as TE
 import Data.Text.IO qualified as T
 import GHC.Exts (IsString, fromString)
 import Prelude.Singletons
@@ -165,10 +166,14 @@ functionDefinitionToSExpr = helper [] [] 0
             is
     helper paramList localList _ (FDBody (BlockNoReturn is)) = finalHelper paramList localList [] is
 
+memoryToSExprs :: Memory -> [SExpr]
+memoryToSExprs NoMemory = []
+memoryToSExprs (Memory start ma) = [atomList ["memory", T.pack $ show start, T.pack $ show ma]]
+
 moduleToSExpr :: Module SExprTarget -> SExpr
 moduleToSExpr = helper (0 :: Int) (0 :: Int) []
   where
-    helper _ _ soFar ModuleBase = SExprList ("module" : reverse soFar)
+    helper _ _ soFar (ModuleBase memory) = SExprList ("module" : memoryToSExprs memory <> reverse soFar)
     helper funcCount refCount soFar (ModuleFunction fd k) =
         helper
             (funcCount + 1)
@@ -196,6 +201,14 @@ moduleToSExpr = helper (0 :: Int) (0 :: Int) []
                 : soFar
             )
             next
+    helper funcCount refCount soFar (ModuleAddData offset d next) =
+        let here =
+                SExprList
+                    [ "data"
+                    , atomList ["i32.const", T.pack $ show offset]
+                    , SExprAtom ("\"" <> TE.decodeUtf8Lenient d <> "\"")
+                    ]
+         in helper funcCount refCount (here : soFar) next
 
 moduleToWatFile :: Module SExprTarget -> FilePath -> IO ()
 moduleToWatFile m path =

@@ -33,6 +33,7 @@ common shared
     , text
     , mtl
     , prettyprinter
+    , bytestring
 
 library
   import: shared

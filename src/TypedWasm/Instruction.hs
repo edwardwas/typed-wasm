@@ -2,6 +2,8 @@ module TypedWasm.Instruction where
 
 import Control.Category
 import Control.Monad.Cont
+import Data.ByteString (ByteString)
+import Data.Int (Int32)
 import Data.Kind (Type)
 import Data.Singletons
 import Data.Text (Text)
@@ -170,16 +172,20 @@ fdResultBody ::
     FunctionDefinition wt '[] ('Just o)
 fdResultBody = FDBody . BlockSingleReturn sing
 
+data Memory = NoMemory | Memory Int32 Int32
+    deriving stock (Eq, Show, Ord)
+
 {- | A WASM module.
 
 This can be quite difficult to work with. One should prefer `ModuleBuilder`, which provides
 a monadic interface to creating thes values
 -}
 data Module (wt :: Type) where
-    ModuleBase :: Module wt
+    ModuleBase :: Memory -> Module wt
     ModuleFunction :: FunctionDefinition wt is o -> (TargetFunction wt is o -> Module wt) -> Module wt
     ModuleGlobal :: (SingI t) => SMutability m -> NumericVal t -> (TargetReference wt m t -> Module wt) -> Module wt
     ModuleExportFunc :: Text -> TargetFunction wt is o -> Module wt -> Module wt
+    ModuleAddData :: Int32 -> ByteString -> Module wt -> Module wt
 
 {- | A conviniet way to construct `Module`s.
 
@@ -190,8 +196,8 @@ newtype ModuleBuilder (wt :: Type) (a :: Type) = ModuleBuilder (Cont (Module wt)
     deriving newtype (Functor, Applicative, Monad)
 
 -- | Create a `Module` from a `ModuleBuilder`
-buildModule :: ModuleBuilder wt a -> Module wt
-buildModule (ModuleBuilder c) = runCont c (const ModuleBase)
+buildModule :: ModuleBuilder wt Memory -> Module wt
+buildModule (ModuleBuilder c) = runCont c ModuleBase
 
 -- | Add a function to the module and get a reference to it
 moduleFunction :: FunctionDefinition wt is o -> ModuleBuilder wt (TargetFunction wt is o)
@@ -205,3 +211,6 @@ moduleGlobal nv = ModuleBuilder $ cont $ ModuleGlobal sing nv
 
 moduleExportFunc :: Text -> TargetFunction wt is o -> ModuleBuilder wt ()
 moduleExportFunc name fr = ModuleBuilder $ cont (\f -> ModuleExportFunc name fr $ f ())
+
+moduleAddData :: Int32 -> ByteString -> ModuleBuilder wt ()
+moduleAddData offset d = ModuleBuilder $ cont $ \f -> ModuleAddData offset d $ f ()

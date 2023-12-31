@@ -14,13 +14,14 @@ import TypedWasm.SExpr (moduleToWatFile)
 
 data ModuleTest = ModuleTest
     { moduleTestName :: String
-    , moduleTestModule :: forall wt. ModuleBuilder wt ()
+    , moduleTestModule :: forall wt. ModuleBuilder wt Memory
     }
 
 singleModuleTest :: String -> (forall wt. FunctionDefinition wt '[I32] ('Just 'I32)) -> ModuleTest
 singleModuleTest name funcDef = ModuleTest name $ do
     funcRef <- moduleFunction funcDef
     moduleExportFunc "_start" funcRef
+    return NoMemory
 
 moduleTestTree :: ModuleTest -> TestTree
 moduleTestTree ModuleTest{..} =
@@ -48,7 +49,7 @@ allTests =
             moduleTestTree
             [ ModuleTest "Single constant" $ do
                 _ <- moduleFunction $ fdResultBody $ instrConst $ NVI32 0
-                return ()
+                return NoMemory
             , ModuleTest "If single return with false" $ do
                 _ <-
                     moduleFunction
@@ -58,7 +59,10 @@ allTests =
                                     (blockSingleReturn $ instrConst $ NVI32 100)
                                     (blockSingleReturn $ instrConst $ NVI32 200)
                             )
-                return ()
+                return NoMemory
+            , ModuleTest "Simple data section" $ do
+                moduleAddData 0 "hello world"
+                return $ Memory 1 1
             , singleModuleTest "Trigger different operations with args"
                 $ fdWithParam
                 $ \arg ->

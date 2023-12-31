@@ -43,11 +43,14 @@ data RefNamed (m :: Mutability) (nt :: NumericType) = RefNamed Locality Text
 
 newtype FuncNamed (is :: [NumericType]) (o :: Maybe NumericType) = FuncName Text
 
+newtype CountJumpTarget (is :: [NumericType]) (os :: [NumericType]) = CountJumpTarget Int
+
 data SExprTarget
 
 instance WasmTarget SExprTarget where
     type TargetFunction SExprTarget = FuncNamed
     type TargetReference SExprTarget = RefNamed
+    type TargetJumpTarget SExprTarget = CountJumpTarget
 
 renderNumericType :: SNumericType t -> Text
 renderNumericType SI32 = "i32"
@@ -61,47 +64,64 @@ renderNumericValue (NVF32 n) = T.pack (show n)
 renderNumericValue (NVI64 n) = T.pack (show n)
 renderNumericValue (NVF64 n) = T.pack (show n)
 
-instructionToSExprs :: Instruction SExprTarget is os -> [SExpr]
-instructionToSExprs (InstrConcat a b) =
-    instructionToSExprs a
-        <> instructionToSExprs b
-instructionToSExprs InstrNOP = []
-instructionToSExprs InstrDrop = ["drop"]
-instructionToSExprs (InstrConst ty v) =
+type JumpDepth = Int
+
+instructionToSExprs :: JumpDepth -> Instruction SExprTarget is os -> [SExpr]
+instructionToSExprs jd (InstrConcat a b) =
+    instructionToSExprs jd a
+        <> instructionToSExprs jd b
+instructionToSExprs _ InstrNOP = []
+instructionToSExprs _ InstrDrop = ["drop"]
+instructionToSExprs _ (InstrConst ty v) =
     [ atomList
         [ renderNumericType ty <> ".const"
         , renderNumericValue v
         ]
     ]
-instructionToSExprs (InstrAdd ty) = [SExprAtom (renderNumericType ty <> ".add")]
-instructionToSExprs (InstrMul ty) = [SExprAtom (renderNumericType ty <> ".mul")]
-instructionToSExprs (InstrSub ty) = [SExprAtom (renderNumericType ty <> ".sub")]
-instructionToSExprs (InstrGlobalGet (RefNamed loc name)) =
+instructionToSExprs _ (InstrAdd ty) = [SExprAtom (renderNumericType ty <> ".add")]
+instructionToSExprs _ (InstrMul ty) = [SExprAtom (renderNumericType ty <> ".mul")]
+instructionToSExprs _ (InstrSub ty) = [SExprAtom (renderNumericType ty <> ".sub")]
+instructionToSExprs _ (InstrGlobalGet (RefNamed loc name)) =
     [ atomList
         [ renderLocality loc <> ".get"
         , name
         ]
     ]
-instructionToSExprs (InstrGlobalSet (RefNamed loc name)) =
+instructionToSExprs _ (InstrGlobalSet (RefNamed loc name)) =
     [ atomList
         [ renderLocality loc <> ".set"
         , name
         ]
     ]
-instructionToSExprs (InstrCallFunc _ (FuncName name)) = [atomList ["call", name]]
-instructionToSExprs (InstrIf _ (BlockNoReturn ifTrue) (BlockNoReturn ifFalse)) =
-    [ SExprAtom "if"
-    , SExprList ("then" : instructionToSExprs ifTrue)
-    , SExprList ("else" : instructionToSExprs ifFalse)
+instructionToSExprs _ (InstrCallFunc _ (FuncName name)) = [atomList ["call", name]]
+instructionToSExprs jd (InstrIf _ (BlockNoReturn ifTrue) (BlockNoReturn ifFalse)) =
+    [ SExprList
+        [ SExprAtom "if"
+        , SExprList ("then" : instructionToSExprs (succ jd) ifTrue)
+        , SExprList ("else" : instructionToSExprs (succ jd) ifFalse)
+        ]
     ]
-instructionToSExprs (InstrIf _ (BlockSingleReturn sType ifTrue) (BlockSingleReturn _ ifFalse)) =
+instructionToSExprs jd (InstrIf _ (BlockSingleReturn sType ifTrue) (BlockSingleReturn _ ifFalse)) =
     [ SExprList
         [ "if"
         , atomList ["result", renderNumericType sType]
-        , SExprList ("then" : instructionToSExprs ifTrue)
-        , SExprList ("else" : instructionToSExprs ifFalse)
+        , SExprList ("then" : instructionToSExprs (succ jd) ifTrue)
+        , SExprList ("else" : instructionToSExprs (succ jd) ifFalse)
         ]
     ]
+instructionToSExprs jd (InstrLoop k) =
+    [ SExprList
+        ( "loop"
+            : instructionToSExprs
+                (jd + 1)
+                ( k
+                    $ CountJumpTarget jd
+                )
+        )
+    ]
+instructionToSExprs jd (InstrJump (CountJumpTarget jd')) =
+    let jumpId = jd - jd' - 1
+     in [atomList ["br", T.pack $ show jumpId]]
 
 functionDefinitionToSExpr :: FunctionDefinition SExprTarget is o -> SExpr
 functionDefinitionToSExpr = helper [] [] 0
@@ -112,7 +132,7 @@ functionDefinitionToSExpr = helper [] [] 0
                 <> reverse paramList
                 <> resultList
                 <> reverse localList
-                <> instructionToSExprs body
+                <> instructionToSExprs 0 body
             )
     helper ::
         [SExpr] ->

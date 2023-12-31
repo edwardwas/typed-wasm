@@ -12,9 +12,12 @@ type FuncKind = [NumericType] -> Maybe NumericType -> Type
 
 type RefKind = Mutability -> NumericType -> Type
 
+type JumpTargetKind = [NumericType] -> [NumericType] -> Type
+
 class WasmTarget (wt :: Type) where
     type TargetFunction wt :: FuncKind
     type TargetReference wt :: RefKind
+    type TargetJumpTarget wt :: JumpTargetKind
 
 -- | A type family for combining lists
 type family ConcatList as bs where
@@ -89,6 +92,8 @@ data
         Block wt '[] o ->
         Block wt '[] o ->
         Instruction wt ('I32 ': is) (PrependMaybe o os)
+    InstrJump :: TargetJumpTarget wt is os -> Instruction wt is os
+    InstrLoop :: (TargetJumpTarget wt '[] '[] -> Instruction wt '[] '[]) -> Instruction wt is os
 
 instance Category (Instruction wt) where
     id = InstrNOP

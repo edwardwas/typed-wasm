@@ -17,6 +17,11 @@ data ModuleTest = ModuleTest
     , moduleTestModule :: forall wt. ModuleBuilder wt ()
     }
 
+singleModuleTest :: String -> (forall wt. FunctionDefinition wt '[I32] ('Just 'I32)) -> ModuleTest
+singleModuleTest name funcDef = ModuleTest name $ do
+    funcRef <- moduleFunction funcDef
+    moduleExportFunc "_start" funcRef
+
 moduleTestTree :: ModuleTest -> TestTree
 moduleTestTree ModuleTest{..} =
     testCase moduleTestName $ do
@@ -53,8 +58,9 @@ allTests =
                                     (blockSingleReturn $ instrConst $ NVI32 200)
                             )
                 return ()
-            , ModuleTest "Trigger different operations with args" $ do
-                _ <- moduleFunction $ fdWithParam $ \arg ->
+            , singleModuleTest "Trigger different operations with args"
+                $ fdWithParam
+                $ \arg ->
                     fdWithLocal $ \a ->
                         fdWithLocal $ \b ->
                             fdResultBody
@@ -77,5 +83,42 @@ allTests =
                                             )
                                         )
                                 )
-                return ()
+            , singleModuleTest "Loop with no jump"
+                $ fdWithParam @I32
+                $ \arg ->
+                    fdResultBody
+                        ( InstrLoop (\_ -> instrConst (NVI64 10) >>> InstrDrop)
+                            >>> InstrGlobalGet arg
+                        )
+            , singleModuleTest
+                "Loop with jump"
+                $ fdWithParam @I32
+                $ \arg ->
+                    fdWithLocal @I32 $ \result ->
+                        fdWithLocal @I32 $ \loopCounter ->
+                            fdResultBody
+                                ( instrConst 10
+                                    >>> InstrGlobalSet loopCounter
+                                    >>> instrConst 0
+                                    >>> InstrGlobalSet result
+                                    >>> InstrLoop
+                                        ( \j ->
+                                            InstrGlobalGet loopCounter
+                                                >>> instrIfNoReturn
+                                                    ( BlockNoReturn
+                                                        ( InstrGlobalGet arg
+                                                            >>> InstrGlobalGet result
+                                                            >>> instrAdd
+                                                            >>> InstrGlobalSet result
+                                                            >>> InstrGlobalGet loopCounter
+                                                            >>> instrConst (-1)
+                                                            >>> instrAdd
+                                                            >>> InstrGlobalSet loopCounter
+                                                            >>> InstrJump j
+                                                        )
+                                                    )
+                                                    (BlockNoReturn InstrNOP)
+                                        )
+                                    >>> InstrGlobalGet result
+                                )
             ]

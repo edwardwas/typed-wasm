@@ -7,6 +7,8 @@ module TypedWasm.Numeric (
     NumericType (..),
     SNumericType (..),
     NumericVal (..),
+    SFloatNumericType (..),
+    extractSFloat,
     -- | Mutability
     Mutability (..),
     SMutability (..),
@@ -46,6 +48,14 @@ $( singletons
             deriving (Eq, Show)
         |]
  )
+
+data SFloatNumericType (n :: NumericType) where
+    SFloat32 :: SNumericType 'F32 -> SFloatNumericType 'F32
+    SFloat64 :: SNumericType 'F64 -> SFloatNumericType 'F64
+
+extractSFloat :: SFloatNumericType n -> SNumericType n
+extractSFloat (SFloat32 s) = s
+extractSFloat (SFloat64 s) = s
 
 -- | The Haskell representation of WASM stack values
 data NumericVal (n :: NumericType) where

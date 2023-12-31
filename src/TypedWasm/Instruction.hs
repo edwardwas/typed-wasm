@@ -73,6 +73,7 @@ data
     InstrSub ::
         SNumericType t ->
         Instruction wt (t ': t ': xs) (t ': xs)
+    InstrSqrt :: SFloatNumericType t -> Instruction wt (t ': xs) (t ': xs)
     -- | Read a global reference
     InstrGlobalGet ::
         TargetReference wt m t ->
@@ -102,6 +103,12 @@ data
 instance Category (Instruction wt) where
     id = InstrNOP
     (.) = flip InstrConcat
+
+instance Semigroup (Instruction wt as as) where
+    (<>) = flip (.)
+
+instance Monoid (Instruction wt as as) where
+    mempty = id
 
 instrConst :: (SingI t) => NumericVal t -> Instruction wt xs (t ': xs)
 instrConst = InstrConst sing

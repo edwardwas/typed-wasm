@@ -81,6 +81,7 @@ instructionToSExprs _ (InstrConst ty v) =
 instructionToSExprs _ (InstrAdd ty) = [SExprAtom (renderNumericType ty <> ".add")]
 instructionToSExprs _ (InstrMul ty) = [SExprAtom (renderNumericType ty <> ".mul")]
 instructionToSExprs _ (InstrSub ty) = [SExprAtom (renderNumericType ty <> ".sub")]
+instructionToSExprs _ (InstrSqrt ty) = [SExprAtom (renderNumericType (extractSFloat ty) <> ".sqrt")]
 instructionToSExprs _ (InstrGlobalGet (RefNamed loc name)) =
     [ atomList
         [ renderLocality loc <> ".get"

@@ -31,6 +31,15 @@ applyBinaryFuncToValueStack ::
     ValueStack (c ': cs)
 applyBinaryFuncToValueStack f (ConsValueStack a (ConsValueStack b c)) = ConsValueStack (f a b) c
 
+applyFloatingToHeadOfStack ::
+    (Float -> Float) ->
+    (Double -> Double) ->
+    SFloatNumericType a ->
+    ValueStack (a ': as) ->
+    ValueStack (a ': as)
+applyFloatingToHeadOfStack f _ (SFloat32 _) (ConsValueStack (NVF32 a) as) = ConsValueStack (NVF32 $ f a) as
+applyFloatingToHeadOfStack _ f (SFloat64 _) (ConsValueStack (NVF64 a) as) = ConsValueStack (NVF64 $ f a) as
+
 data EvalFunc (st :: Type) (is :: [NumericType]) (o :: Maybe NumericType) where
     EFSingleReturn :: (ValueStack is -> ST st (NumericVal n)) -> EvalFunc st is ('Just n)
     EFNoReturnValue :: (ValueStack is -> ST st ()) -> EvalFunc st is 'Nothing
@@ -61,6 +70,7 @@ evaluateInstruction (InstrConst _ v) s = pure $ ConsValueStack v s
 evaluateInstruction (InstrAdd si) s = withSingI si $ pure $ applyBinaryFuncToValueStack (+) s
 evaluateInstruction (InstrMul si) s = withSingI si $ pure $ applyBinaryFuncToValueStack (*) s
 evaluateInstruction (InstrSub si) s = withSingI si $ pure $ applyBinaryFuncToValueStack (-) s
+evaluateInstruction (InstrSqrt si) stack = pure $ applyFloatingToHeadOfStack sqrt sqrt si stack
 evaluateInstruction (InstrGlobalGet (EvalReference r)) s = (`ConsValueStack` s) <$> readSTRef r
 evaluateInstruction (InstrGlobalSet (EvalReference r)) (ConsValueStack a s) = s <$ writeSTRef r a
 evaluateInstruction (InstrCallFunc _ ef) stack = case ef of

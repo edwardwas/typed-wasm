@@ -101,6 +101,14 @@ data
     -- This will run the `Instruction` created by the continuation. When ever one jumps to the
     -- given jump target this `Instruction` will restart
     InstrLoop :: (TargetJumpTarget wt '[] '[] -> Instruction wt '[] '[]) -> Instruction wt xs xs
+    -- | Load the memory at this address.
+    --
+    -- The number of bytes read will depend on the the type of the read value
+    InstrMemoryLoad :: Sing t -> Instruction wt ('I32 ': xs) (t ': xs)
+    -- | Store the value at the `I32` index in memory.
+    --
+    -- The number of bytes read will depend on the the type of the stored value
+    InstrMemoryStore :: Sing t -> Instruction wt ('I32 ': t ': xs) xs
 
 instance Category (Instruction wt) where
     id = InstrNOP
@@ -129,6 +137,12 @@ instrIfNoReturn ::
     Block wt '[] 'Nothing ->
     Instruction wt ('I32 ': is) is
 instrIfNoReturn = InstrIf
+
+instrMemoryLoad :: (SingI t) => Instruction wt ('I32 ': xs) (t ': xs)
+instrMemoryLoad = InstrMemoryLoad sing
+
+instrMemoryStore :: (SingI t) => Instruction wt ('I32 ': t ': xs) xs
+instrMemoryStore = InstrMemoryStore sing
 
 {- | Construct a type save function definition.
 
@@ -172,6 +186,15 @@ fdResultBody ::
     FunctionDefinition wt '[] ('Just o)
 fdResultBody = FDBody . BlockSingleReturn sing
 
+fdNoResultBody :: Instruction wt '[] '[] -> FunctionDefinition wt '[] Nothing
+fdNoResultBody = FDBody . BlockNoReturn
+
+{- | Define the memory section of a WASM module.
+
+One option is `NoMemory`, to indicate that you don't want to use any memory.
+
+The other is to indicate the memory with a minimum number of pages and a maximum
+-}
 data Memory = NoMemory | Memory Int32 Int32
     deriving stock (Eq, Show, Ord)
 
@@ -212,5 +235,6 @@ moduleGlobal nv = ModuleBuilder $ cont $ ModuleGlobal sing nv
 moduleExportFunc :: Text -> TargetFunction wt is o -> ModuleBuilder wt ()
 moduleExportFunc name fr = ModuleBuilder $ cont (\f -> ModuleExportFunc name fr $ f ())
 
+-- | Add this data to the memory at the given offset
 moduleAddData :: Int32 -> ByteString -> ModuleBuilder wt ()
 moduleAddData offset d = ModuleBuilder $ cont $ \f -> ModuleAddData offset d $ f ()

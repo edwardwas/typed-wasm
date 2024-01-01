@@ -63,6 +63,24 @@ allTests =
             , ModuleTest "Simple data section" $ do
                 moduleAddData 0 "hello world"
                 return $ Memory 1 1
+            , ModuleTest "Read and write memory" $ do
+                moduleFunction
+                    ( fdResultBody @I32
+                        ( instrConst (NVI32 0)
+                            >>> instrConst (NVI32 100)
+                            >>> instrMemoryStore
+                            >>> instrConst (NVI32 4)
+                            >>> instrConst (NVI32 200)
+                            >>> instrMemoryStore
+                            >>> instrConst (NVI32 0)
+                            >>> instrMemoryLoad
+                            >>> instrConst (NVI32 4)
+                            >>> instrMemoryLoad
+                            >>> instrAdd
+                        )
+                    )
+                    >>= moduleExportFunc "_start"
+                return $ Memory 1 1
             , singleModuleTest "Trigger different operations with args"
                 $ fdWithParam
                 $ \arg ->

@@ -124,6 +124,8 @@ instructionToSExprs jd (InstrLoop k) =
 instructionToSExprs jd (InstrJump (CountJumpTarget jd')) =
     let jumpId = jd - jd' - 1
      in [atomList ["br", T.pack $ show jumpId]]
+instructionToSExprs _ (InstrMemoryLoad sTy) = [atomList [renderNumericType sTy <> ".load"]]
+instructionToSExprs _ (InstrMemoryStore sTy) = [atomList [renderNumericType sTy <> ".store"]]
 
 functionDefinitionToSExpr :: FunctionDefinition SExprTarget is o -> SExpr
 functionDefinitionToSExpr = helper [] [] 0

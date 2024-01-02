@@ -14,42 +14,25 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common shared
-  ghc-options: -Wincomplete-patterns -Wall
+  ghc-options: -Wall
   default-language: GHC2021
-  default-extensions: GADTs
-    , DataKinds
-    , TypeFamilies
-    , TemplateHaskell
-    , UndecidableInstances
-    , OverloadedStrings
-    , FunctionalDependencies
-    , LambdaCase
-    , DerivingStrategies
   build-depends: base ^>= 4.18.0.0
-    , free
-    , singletons
-    , singletons-th
-    , singletons-base
     , text
+    , containers
     , mtl
-    , prettyprinter
     , bytestring
+    , containers
+  default-extensions: OverloadedStrings
 
 library
   import: shared
-  exposed-modules:  TypedWasm.Instruction
-    , TypedWasm.Eval
-    , TypedWasm.Numeric
-    , TypedWasm.SExpr
+  exposed-modules:  TypedWasm.Definition.Types
   hs-source-dirs:   src
 
 test-suite typed-wasm-test
   import: shared
   type:             exitcode-stdio-1.0
-  other-modules: TypedWasm.Test.Compile
   hs-source-dirs:   test
   main-is:          Main.hs
   build-depends: typed-wasm
     , tasty
-    , tasty-hunit
-    , shelly

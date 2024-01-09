@@ -26,7 +26,9 @@ readConstantRep SNF32 t = CRF32 $ read $ T.unpack t
 readConstantRep SNF64 t = CRF64 $ read $ T.unpack t
 
 {- | Compile a WASM function into a wasm file, and provide a function
-to call this function
+to call this function.
+
+This will have a memory with a minimum size of 0 and a maximum size of 1
 -}
 compileSingleFunction ::
     forall o is a.
@@ -35,7 +37,9 @@ compileSingleFunction ::
     ((HList ConstantRep is -> Sh (ConstantRep o)) -> Sh a) ->
     IO a
 compileSingleFunction fd k = shelly $ silently $ withTmpDir $ \workingDir -> do
-    let m = runModuleBuilder (addFunction fd >>= exportFunction "_start")
+    let m = runModuleBuilder $ do
+            addFunction fd >>= exportFunction "_start"
+            return $ Memory 0 1
     liftIO
         $ T.writeFile (workingDir </> "module" <.> "wat")
         $ renderStrict

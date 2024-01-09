@@ -175,7 +175,15 @@ convertModule :: ModuleDef SExprTarget -> SExpr
 convertModule md = SExprList ("module" : helper 0 md)
   where
     helper :: Int -> ModuleDef SExprTarget -> [SExpr]
-    helper _ MDBase = []
+    helper _ (MDBase mem) = case mem of
+        NoMemory -> []
+        Memory minSize maxSize ->
+            [ atomList
+                [ "memory"
+                , T.pack $ show minSize
+                , T.pack $ show maxSize
+                ]
+            ]
     helper funcCount (MDAddFunction fd k) =
         convertFunctionDef fd
             : helper (succ funcCount) (k $ SExprTargetFunc funcCount)

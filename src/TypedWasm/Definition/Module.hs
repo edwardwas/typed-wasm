@@ -2,6 +2,7 @@ module TypedWasm.Definition.Module where
 
 import Control.Monad.Cont
 import Data.Text (Text)
+import Data.Word (Word32)
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
 import TypedWasm.Definition.Types
@@ -25,8 +26,13 @@ functionDef ::
     FunctionDef wt is os
 functionDef = FunctionDef singValueTypeList singValueTypeList
 
+data Memory
+    = NoMemory
+    | Memory Word32 Word32
+    deriving stock (Eq, Show)
+
 data ModuleDef wt where
-    MDBase :: ModuleDef wt
+    MDBase :: Memory -> ModuleDef wt
     MDAddFunction ::
         (SingList SingValueType os) =>
         FunctionDef wt is os ->
@@ -37,8 +43,8 @@ data ModuleDef wt where
 newtype ModuleBuilder wt a = ModuleBuilder (Cont (ModuleDef wt) a)
     deriving newtype (Functor, Applicative, Monad)
 
-runModuleBuilder :: ModuleBuilder wt a -> ModuleDef wt
-runModuleBuilder (ModuleBuilder act) = runCont act (const MDBase)
+runModuleBuilder :: ModuleBuilder wt Memory -> ModuleDef wt
+runModuleBuilder (ModuleBuilder act) = runCont act MDBase
 
 addFunction ::
     (SingList SingValueType os) =>

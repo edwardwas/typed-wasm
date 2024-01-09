@@ -17,16 +17,33 @@ common shared
   ghc-options: -Wall
   default-language: GHC2021
   build-depends: base ^>= 4.18.0.0
-    , text
-    , containers
-    , mtl
-    , bytestring
-    , containers
-  default-extensions: OverloadedStrings
+    , bytestring >= 0.11.5 && < 0.12
+    , containers >= 0.6.7 && < 0.7
+    , generic-lens >= 2.2.2 && < 2.3
+    , text >= 2.0.2 && < 2.1
+    , lens >= 5.2.3 && < 5.3
+    , mtl >= 2.3.1 && < 2.4
+    , prettyprinter >= 1.7.1 && < 1.8
+  default-extensions: 
+      DataKinds
+    , DerivingStrategies
+    , GADTs
+    , OverloadedLabels
+    , OverloadedStrings
+    , PatternSynonyms
+    , PolyKinds
+    , DeriveAnyClass
+    , TypeFamilies
 
 library
   import: shared
   exposed-modules:  TypedWasm.Definition.Types
+    , TypedWasm.Definition.Instruction
+    , TypedWasm.Definition.List
+    , TypedWasm.Definition.Module
+    , TypedWasm.WAT.SExpr
+    , TypedWasm.WAT.Export
+    , TypedWasm.Util.Enum
   hs-source-dirs:   src
 
 test-suite typed-wasm-test
@@ -34,5 +51,10 @@ test-suite typed-wasm-test
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          Main.hs
+  other-modules: TypedWasm.Test.Example
+    , TypedWasm.Test.Ops
   build-depends: typed-wasm
     , tasty
+    , tasty-hunit
+    , filepath
+    , shelly

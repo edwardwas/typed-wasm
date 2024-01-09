@@ -1,4 +1,16 @@
 module Main (main) where
 
+import Test.Tasty
+import TypedWasm.Test.Ops
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented."
+main =
+    defaultMain
+        $ testGroup
+            "Test"
+            [ testGroup
+                "Operation test"
+                [ integralUnaryTests
+                , integralBinaryTests
+                ]
+            ]

@@ -42,6 +42,7 @@ library
     , TypedWasm.Definition.Instruction
     , TypedWasm.Definition.List
     , TypedWasm.Definition.Module
+    , TypedWasm.Definition.Memory
     , TypedWasm.WAT.SExpr
     , TypedWasm.WAT.Export
     , TypedWasm.Util.Enum

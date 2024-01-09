@@ -34,6 +34,7 @@ common shared
     , PolyKinds
     , DeriveAnyClass
     , TypeFamilies
+    , UndecidableInstances
 
 library
   import: shared

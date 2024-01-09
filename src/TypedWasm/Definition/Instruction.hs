@@ -1,12 +1,8 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module TypedWasm.Definition.Instruction where
 
 import Control.Category
 import Data.Int (Int32, Int64)
 import Data.Kind (Type)
-import Data.Proxy (Proxy (..))
-import Data.Type.Equality ((:~:) (..))
 import GHC.Generics (Generic)
 import TypedWasm.Definition.List
 import TypedWasm.Definition.Types

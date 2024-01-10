@@ -7,6 +7,7 @@ import Data.Text qualified as T
 import GHC.Generics (Generic)
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
+import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.WAT.SExpr

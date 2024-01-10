@@ -7,6 +7,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
+import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.Test.Example

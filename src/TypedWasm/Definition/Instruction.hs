@@ -5,6 +5,7 @@ import Data.Int (Int32, Int64)
 import Data.Kind (Type)
 import GHC.Generics (Generic)
 import TypedWasm.Definition.List
+import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Types
 import TypedWasm.Util.Enum
 import Prelude hiding (id, (.))
@@ -18,11 +19,6 @@ data ConstantRep (vt :: ValueType) where
 
 deriving instance Eq (ConstantRep vt)
 deriving instance Show (ConstantRep vt)
-
--- | Tag whether an operation is signed or unsigned
-data Signed = Signed | Unsigned
-    deriving stock (Eq, Show, Generic)
-    deriving anyclass (Enumerable)
 
 -- | Unary operations on integeral values
 data IntegralUnaryOp
@@ -154,6 +150,7 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         Instruction wt ('I32 ': is) os
     InstrGetRef :: TargetRef wt mut t -> Instruction wt '[] '[t]
     InstrSetRef :: TargetRef wt 'Mutable t -> Instruction wt '[t] '[]
+    InstrLoadMemory :: BitWidth t -> MemoryArgument t -> Instruction wt '[I32] '[t]
 
 -- | An infix definition of `InstrSequence`
 (>.) ::

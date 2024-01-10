@@ -20,10 +20,13 @@ common shared
     , bytestring >= 0.11.5 && < 0.12
     , containers >= 0.6.7 && < 0.7
     , generic-lens >= 2.2.2 && < 2.3
-    , text >= 2.0.2 && < 2.1
     , lens >= 5.2.3 && < 5.3
     , mtl >= 2.3.1 && < 2.4
     , prettyprinter >= 1.7.1 && < 1.8
+    , singletons >= 3.0.2 && < 3.1
+    , singletons-base >= 3.2 && < 3.3
+    , singletons-th >= 3.2 && < 3.3
+    , text >= 2.0.2 && < 2.1
   default-extensions: 
       DataKinds
     , DerivingStrategies
@@ -31,6 +34,7 @@ common shared
     , OverloadedLabels
     , OverloadedStrings
     , PatternSynonyms
+    , TemplateHaskell
     , PolyKinds
     , DeriveAnyClass
     , TypeFamilies

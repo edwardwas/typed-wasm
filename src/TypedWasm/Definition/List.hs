@@ -1,3 +1,5 @@
+{-# LANGUAGE QuantifiedConstraints #-}
+
 module TypedWasm.Definition.List where
 
 import Data.Kind (Constraint, Type)
@@ -9,6 +11,9 @@ import TypedWasm.Definition.Types
 data HList (f :: k -> Type) (xs :: [k]) where
     HEmpty :: HList f '[]
     HCons :: f x -> HList f xs -> HList f (x ': xs)
+
+deriving instance (forall x. Show (f x)) => Show (HList f xs)
+deriving instance (forall x. Eq (f x)) => Eq (HList f xs)
 
 {-# COMPLETE (:*:) #-}
 

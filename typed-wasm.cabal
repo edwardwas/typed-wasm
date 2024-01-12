@@ -63,4 +63,5 @@ test-suite typed-wasm-test
     , tasty
     , tasty-hunit
     , filepath
-    , shelly
+    , temporary
+    , process

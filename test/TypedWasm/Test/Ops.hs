@@ -1,10 +1,7 @@
 module TypedWasm.Test.Ops where
 
-import Control.Monad
-import Control.Monad.IO.Class (liftIO)
 import Data.Bits
 import Test.Tasty
-import Test.Tasty.HUnit
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
@@ -61,16 +58,18 @@ integralUnaryTests =
         IntegralUnaryOp ->
         SIntegralType vt ->
         TestTree
-    helper iuo sTy = testCaseSteps (show sTy) $ \step -> do
-        step "Compiling..."
-        compileSingleFunction @vt
-            ( functionDef @'[] @'[vt]
-                $ \HEmpty (HSingle i) -> InstrGetRef i >. InstrIntegralUnary sTy iuo
+    helper iuo sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] $ \HEmpty (HSingle i) ->
+                        InstrGetRef i >. InstrIntegralUnary sTy iuo
+                    )
             )
-            $ \call -> forM_ (intergralUnaryExamples iuo) $ \(i, o) -> do
-                liftIO $ step (show i <> " => " <> show o)
-                o' <- call (HSingle $ intToConstantRep sTy i)
-                liftIO (intToConstantRep sTy o @=? o')
+            ( map (\(i, o) -> (HSingle (intToConstantRep sTy i), intToConstantRep sTy o))
+                $ intergralUnaryExamples iuo
+            )
 
 integralBinaryTests :: TestTree
 integralBinaryTests =
@@ -83,16 +82,20 @@ integralBinaryTests =
         IntegralBinaryOp ->
         SIntegralType vt ->
         TestTree
-    helper ibo sTy = testCaseSteps (show sTy) $ \step -> do
-        step "Compiling..."
-        compileSingleFunction @vt
-            ( functionDef @'[] @'[vt, vt]
-                $ \HEmpty (a :* b) ->
-                    InstrGetRef a
-                        >. InstrGetRef b
-                        >. InstrIntegralBinary sTy ibo
+    helper ibo sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] $ \HEmpty (a :* b) ->
+                        InstrGetRef a >. InstrGetRef b >. InstrIntegralBinary sTy ibo
+                    )
             )
-            $ \call -> forM_ (integralBinaryExamples ibo) $ \(a, b, o) -> do
-                liftIO $ step (show a <> ", " <> show b <> " => " <> show o)
-                o' <- call (intToConstantRep sTy a :* intToConstantRep sTy b)
-                liftIO (intToConstantRep sTy o @=? o')
+            ( map
+                ( \(a, b, o) ->
+                    ( intToConstantRep sTy a :* intToConstantRep sTy b
+                    , intToConstantRep sTy o
+                    )
+                )
+                $ integralBinaryExamples ibo
+            )

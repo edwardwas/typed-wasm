@@ -90,32 +90,6 @@ instance WasmTarget SExprTarget where
 
 type JumpDepth = Int
 
-memoryInstructionFromBidWitdh :: forall t. BitWidth t -> Text -> Text
-memoryInstructionFromBidWitdh (BitWidthIntegral sTy _) fragment =
-    numericTypeFramgnet (sIntegralTypeToNumeric sTy)
-        <> "."
-        <> fragment
-memoryInstructionFromBidWitdh (BitWidthFloating sTy _) fragment =
-    numericTypeFramgnet (sFloatingTypeToNumeric sTy)
-        <> "."
-        <> fragment
-memoryInstructionFromBidWitdh (BitWidthSignedIntegral sTy sAlign sign) fragment =
-    numericTypeFramgnet (sIntegralTypeToNumeric sTy)
-        <> "."
-        <> fragment
-        <> alignmentSizeString (fromSing sAlign)
-        <> signedFragment sign
-
-convertMemoryInstruction :: Text -> BitWidth t -> MemoryArgument vt -> SExpr
-convertMemoryInstruction fragment bw memArg =
-    atomList
-        [ memoryInstructionFromBidWitdh bw fragment
-        , T.pack $ show align
-        , T.pack $ show offset
-        ]
-  where
-    (offset, align) = memoryArgumentTuple memArg
-
 convertInstruction :: forall is os. JumpDepth -> Instruction SExprTarget is os -> [SExpr]
 convertInstruction jd (InstrSequence a b) = convertInstruction jd a <> convertInstruction jd b
 convertInstruction _ InstrNOP = ["nop"]
@@ -168,8 +142,6 @@ convertInstruction _ (InstrGetRef (SExprTargetRef Local n)) = [atomList ["local.
 convertInstruction _ (InstrGetRef (SExprTargetRef Global n)) = [atomList ["global.get", T.pack (show n)]]
 convertInstruction _ (InstrSetRef (SExprTargetRef Local n)) = [atomList ["local.set", T.pack (show n)]]
 convertInstruction _ (InstrSetRef (SExprTargetRef Global n)) = [atomList ["global.set", T.pack (show n)]]
-convertInstruction _ (InstrLoadMemory bw memArg) = [convertMemoryInstruction "load" bw memArg]
-convertInstruction _ (InstrSetMemory bw memArg) = [convertMemoryInstruction "store" bw memArg]
 
 data FunctionTypeDefinition = FunctionTypeDefinition
     { ftdParams :: [ValueType]

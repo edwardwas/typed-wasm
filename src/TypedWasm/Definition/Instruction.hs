@@ -150,8 +150,6 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         Instruction wt ('I32 ': is) os
     InstrGetRef :: TargetRef wt mut t -> Instruction wt '[] '[t]
     InstrSetRef :: TargetRef wt 'Mutable t -> Instruction wt '[t] '[]
-    InstrLoadMemory :: BitWidth t -> MemoryArgument t -> Instruction wt '[I32] '[t]
-    InstrSetMemory :: BitWidth t -> MemoryArgument t -> Instruction wt '[I32, t] '[]
 
 -- | An infix definition of `InstrSequence`
 (>.) ::

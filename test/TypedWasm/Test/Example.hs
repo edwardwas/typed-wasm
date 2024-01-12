@@ -11,8 +11,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
-import TypedWasm.Definition.Memory
-import TypedWasm.Definition.Memory (selfBitWidth)
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.WAT.Export (convertModule)
@@ -110,17 +108,4 @@ knownTests =
                 (\(i, o) -> (HSingle (CRI32 i), CRI32 o))
                 [(0, 1), (1, 2), (2, 4), (3, 8)]
             )
-        , exampleTest @'[ 'I32] @I32
-            "Read and write simple memory"
-            ( (,NoMemory)
-                <$> addFunction
-                    ( functionDef @'[] $ \HEmpty (HSingle i) ->
-                        0
-                            >. InstrGetRef i
-                            >. InstrSetMemory selfBitWidth (selfMemoryArgument 0)
-                            >. 0
-                            >. InstrLoadMemory selfBitWidth (selfMemoryArgument 0)
-                    )
-            )
-            (map (\(i, o) -> (HSingle (CRI32 i), CRI32 o)) [(0, 0), (1, 1), (123, 123)])
         ]

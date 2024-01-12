@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Test.Tasty
+import TypedWasm.Test.Example
 import TypedWasm.Test.Ops
 
 main :: IO ()
@@ -13,4 +14,5 @@ main =
                 [ integralUnaryTests
                 , integralBinaryTests
                 ]
+            , knownTests
             ]

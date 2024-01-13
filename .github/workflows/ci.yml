@@ -13,6 +13,12 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: '9.6.3'
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path:  ${{ steps.setup.outputs.cabal-store }}
+          key: haskell-deps-${{ hashFiles('typed-wasm.cabal') }}
+          restore-keys: haskell-deps-
       - name: Configure
         run: |
           cabal configure

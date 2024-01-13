@@ -16,5 +16,7 @@ jobs:
       - name: Install Deps
         run: |
           cabal build all --only-dependencies
-      - name: Run tests
+      - name: Build All
         run: cabal build all
+      - name: Run tests
+        run: cabal run tests

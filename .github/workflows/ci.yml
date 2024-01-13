@@ -13,13 +13,6 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: '9.6.3'
-      - name: Restore cached dependencies
-        uses: actions/cache/restore@v3
-        id: cache
-        with:
-          path: ${{ steps.setup.outputs.cabal-store }}
-          key: deps-${{ hashFiles('**/plan.json') }}
-          restore-keys: deps-
       - name: Configure
         run: |
           cabal configure
@@ -28,12 +21,6 @@ jobs:
         run: |
           cabal build all --only-dependencies
           cabal test --only-dependencies
-      - name: Save cached dependencies
-        uses: actions/cache/save@v3
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          path: ${{ steps.setup.outputs.cabal-store }}
-          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Build All
         run: cabal build all
       - name: Run tests

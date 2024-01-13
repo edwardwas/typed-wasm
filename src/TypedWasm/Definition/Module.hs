@@ -4,8 +4,8 @@ import Control.Monad.Cont
 import Data.Text (Text)
 import Data.Word (Word32)
 import TypedWasm.Definition.Instruction
-import TypedWasm.Definition.List
 import TypedWasm.Definition.Types
+import TypedWasm.Util.List
 
 data FunctionDef wt is os where
     FunctionDef ::

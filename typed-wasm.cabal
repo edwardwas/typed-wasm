@@ -42,12 +42,12 @@ library
   import: shared
   exposed-modules:  TypedWasm.Definition.Types
     , TypedWasm.Definition.Instruction
-    , TypedWasm.Definition.List
     , TypedWasm.Definition.Module
     , TypedWasm.Definition.Memory
-    , TypedWasm.WAT.SExpr
-    , TypedWasm.WAT.Export
+    , TypedWasm.WAT
     , TypedWasm.Util.Enum
+    , TypedWasm.Util.List
+    , TypedWasm.Util.SExpr
   hs-source-dirs:   src
 
 test-suite typed-wasm-test

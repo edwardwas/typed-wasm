@@ -1,15 +1,15 @@
-module TypedWasm.WAT.Export where
+module TypedWasm.WAT where
 
 import Data.Proxy
 import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Generics (Generic)
 import TypedWasm.Definition.Instruction
-import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
-import TypedWasm.WAT.SExpr
+import TypedWasm.Util.List
+import TypedWasm.Util.SExpr
 
 numericTypeFramgnet :: SNumericType t -> Text
 numericTypeFramgnet SNI32 = "i32"

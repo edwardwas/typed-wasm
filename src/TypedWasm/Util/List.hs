@@ -1,6 +1,6 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 
-module TypedWasm.Definition.List where
+module TypedWasm.Util.List where
 
 import Data.Kind (Constraint, Type)
 import Data.Monoid (Sum (..))

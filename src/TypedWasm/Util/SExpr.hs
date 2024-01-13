@@ -1,4 +1,4 @@
-module TypedWasm.WAT.SExpr where
+module TypedWasm.Util.SExpr where
 
 import Data.Text (Text)
 import GHC.Exts (IsString, fromString)

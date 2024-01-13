@@ -4,10 +4,10 @@ import Control.Category
 import Data.Int (Int32, Int64)
 import Data.Kind (Type)
 import GHC.Generics (Generic)
-import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Types
 import TypedWasm.Util.Enum
+import TypedWasm.Util.List
 import Prelude hiding (id, (.))
 
 -- | A haskell representation of a `ValueType`

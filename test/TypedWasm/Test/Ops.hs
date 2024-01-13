@@ -3,12 +3,12 @@ module TypedWasm.Test.Ops where
 import Data.Bits
 import Test.Tasty
 import TypedWasm.Definition.Instruction
-import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.Test.Example
 import TypedWasm.Util.Enum
+import TypedWasm.Util.List
 
 intergralUnaryExamples :: IntegralUnaryOp -> [(Int, Int)]
 intergralUnaryExamples IUOCountLeadingZeros = []

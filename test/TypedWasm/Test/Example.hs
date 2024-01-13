@@ -10,11 +10,11 @@ import System.Process
 import Test.Tasty
 import Test.Tasty.HUnit
 import TypedWasm.Definition.Instruction
-import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
-import TypedWasm.WAT.Export (convertModule)
+import TypedWasm.Util.List
+import TypedWasm.WAT (convertModule)
 
 showConstantRep :: ConstantRep i -> String
 showConstantRep (CRI32 n) = show n

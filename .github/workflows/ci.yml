@@ -1,0 +1,20 @@
+on: [push]
+name: CI
+jobs: 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.3'
+      - name: Configure
+        run: |
+          cabal configure
+          cabal build all --dry-run
+      - name: Install Deps
+        run: |
+          cabal build all --only-dependencies
+      - name: Run tests
+        run: cabal build all

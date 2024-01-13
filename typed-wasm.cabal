@@ -19,8 +19,6 @@ common shared
   build-depends: base ^>= 4.18.0.0
     , bytestring >= 0.11.5 && < 0.12
     , containers >= 0.6.7 && < 0.7
-    , generic-lens >= 2.2.2 && < 2.3
-    , lens >= 5.2.3 && < 5.3
     , mtl >= 2.3.1 && < 2.4
     , prettyprinter >= 1.7.1 && < 1.8
     , singletons >= 3.0.2 && < 3.1

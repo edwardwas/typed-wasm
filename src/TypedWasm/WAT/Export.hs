@@ -1,6 +1,5 @@
 module TypedWasm.WAT.Export where
 
-import Data.Generics.Labels ()
 import Data.Proxy
 import Data.Text (Text)
 import Data.Text qualified as T

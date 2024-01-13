@@ -122,6 +122,22 @@ intPackingTest =
         )
         [(HSingle 0, 12), (HSingle 1, 24), (HSingle 2, 30), (HSingle 3, 31)]
 
+constantTests :: TestTree
+constantTests = testGroup "Global Constants" [helper SNI32, helper SNI64, helper SNF32, helper SNF64]
+  where
+    helper :: forall v. (SingNumericType v, SingValueType v) => SNumericType v -> TestTree
+    helper sTy =
+        exampleTest @'[] @v
+            (show sTy)
+            ( do
+                myConstRef <- globalConstant 123
+                myFuncRef <- addFunction
+                    $ functionDef @'[] @'[] @'[v]
+                    $ \HEmpty HEmpty -> InstrGetRef myConstRef
+                return (myFuncRef, NoMemory)
+            )
+            [(HEmpty, 123)]
+
 knownTests :: TestTree
 knownTests =
     testGroup
@@ -154,4 +170,5 @@ knownTests =
             )
         , memoryTests
         , intPackingTest
+        , constantTests
         ]

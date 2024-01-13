@@ -214,3 +214,4 @@ convertModule md = SExprList ("module" : helper 0 md)
             , atomList ["func", T.pack $ show n]
             ]
             : helper funcCount next
+    helper funcCount (MDGlobalConstant constRep k) = undefined

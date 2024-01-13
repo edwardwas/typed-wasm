@@ -11,6 +11,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
+import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.WAT.Export (convertModule)
@@ -100,6 +101,27 @@ memoryTests =
             )
             [(HSingle 123, 123), (HSingle 321, 321)]
 
+-- | Test storing 4 8 bit ints in the size of a 32 bit int
+intPackingTest :: TestTree
+intPackingTest =
+    exampleTest
+        "Int packing"
+        ( (,Memory 1 1)
+            <$> addFunction
+                ( functionDef @'[] @'[I32] @'[I32]
+                    $ \HEmpty (HSingle i) ->
+                        mconcat
+                            [ 0 >. 12 >. InstrStoreMemory (MSIInt8 SI32)
+                            , 1 >. 24 >. InstrStoreMemory (MSIInt8 SI32)
+                            , 2 >. 30 >. InstrStoreMemory (MSIInt8 SI32)
+                            , 3 >. 31 >. InstrStoreMemory (MSIInt8 SI32)
+                            ]
+                            >. InstrGetRef i
+                            >. InstrLoadMemory (MLIInt8 SI32 Signed)
+                )
+        )
+        [(HSingle 0, 12), (HSingle 1, 24), (HSingle 2, 30), (HSingle 3, 31)]
+
 knownTests :: TestTree
 knownTests =
     testGroup
@@ -112,7 +134,7 @@ knownTests =
                         $ \(HSingle soFar) (HSingle i) ->
                             1
                                 >. InstrSetRef soFar
-                                >. InstrLoop @'[] @'[]
+                                >. InstrLoop
                                     ( \j ->
                                         instrWhen
                                             (InstrGetRef i)
@@ -131,4 +153,5 @@ knownTests =
                 [(0, 1), (1, 2), (2, 4), (3, 8)]
             )
         , memoryTests
+        , intPackingTest
         ]

@@ -202,7 +202,7 @@ instance
     a <> InstrNOP = a
     a <> b = a >. b
 
-instance Monoid (Instruction wt '[] '[]) where
+instance (as ~ '[], bs ~ '[]) => Monoid (Instruction wt as bs) where
     mempty = InstrNOP
 
 instance (SingNumericType t, is ~ '[], os ~ '[t]) => Num (Instruction wt is os) where

@@ -18,6 +18,7 @@ data FunctionDef wt is os where
         FunctionDef wt is os
 
 functionDef ::
+    forall locals is os wt.
     (SingList SingValueType locals, SingList SingValueType is) =>
     ( HList (TargetRef wt 'Mutable) locals ->
       HList (TargetRef wt 'Mutable) is ->

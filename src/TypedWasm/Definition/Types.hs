@@ -50,6 +50,9 @@ data SNumericType (vt :: ValueType) where
     SNF32 :: SNumericType 'F32
     SNF64 :: SNumericType 'F64
 
+deriving instance Show (SNumericType vt)
+deriving instance Eq (SNumericType vt)
+
 class SingNumericType (vt :: ValueType) where
     singNumericType :: SNumericType vt
 

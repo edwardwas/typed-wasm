@@ -20,6 +20,37 @@ data ConstantRep (vt :: ValueType) where
 deriving instance Eq (ConstantRep vt)
 deriving instance Show (ConstantRep vt)
 
+instance (SingNumericType vt) => Num (ConstantRep vt) where
+    fromInteger a = case singNumericType @vt of
+        SNI32 -> CRI32 $ fromInteger a
+        SNI64 -> CRI64 $ fromInteger a
+        SNF32 -> CRF32 $ fromInteger a
+        SNF64 -> CRF64 $ fromInteger a
+    CRI32 a + CRI32 b = CRI32 (a + b)
+    CRI64 a + CRI64 b = CRI64 (a + b)
+    CRF32 a + CRF32 b = CRF32 (a + b)
+    CRF64 a + CRF64 b = CRF64 (a + b)
+
+    CRI32 a * CRI32 b = CRI32 (a * b)
+    CRI64 a * CRI64 b = CRI64 (a * b)
+    CRF32 a * CRF32 b = CRF32 (a * b)
+    CRF64 a * CRF64 b = CRF64 (a * b)
+
+    CRI32 a - CRI32 b = CRI32 (a - b)
+    CRI64 a - CRI64 b = CRI64 (a - b)
+    CRF32 a - CRF32 b = CRF32 (a - b)
+    CRF64 a - CRF64 b = CRF64 (a - b)
+
+    signum (CRI32 a) = CRI32 (signum a)
+    signum (CRI64 a) = CRI64 (signum a)
+    signum (CRF32 a) = CRF32 (signum a)
+    signum (CRF64 a) = CRF64 (signum a)
+
+    abs (CRI32 a) = CRI32 (abs a)
+    abs (CRI64 a) = CRI64 (abs a)
+    abs (CRF32 a) = CRF32 (abs a)
+    abs (CRF64 a) = CRF64 (abs a)
+
 -- | Unary operations on integeral values
 data IntegralUnaryOp
     = IUOCountLeadingZeros
@@ -150,6 +181,8 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         Instruction wt ('I32 ': is) os
     InstrGetRef :: TargetRef wt mut t -> Instruction wt '[] '[t]
     InstrSetRef :: TargetRef wt 'Mutable t -> Instruction wt '[t] '[]
+    InstrLoadMemory :: MemLoadInstruction t -> Instruction wt '[I32] '[t]
+    InstrStoreMemory :: MemStoreInstruction t -> Instruction wt '[I32, t] '[]
 
 -- | An infix definition of `InstrSequence`
 (>.) ::
@@ -241,3 +274,9 @@ instrWhen ::
     Instruction wt '[] '[] ->
     Instruction wt '[] '[]
 instrWhen check body = check >. InstrIf body InstrNOP
+
+instrLoadSelf :: (SingNumericType t) => Instruction wt '[I32] '[t]
+instrLoadSelf = InstrLoadMemory (MLISelf singNumericType)
+
+instrStoreSelf :: (SingNumericType t) => Instruction wt '[I32, t] '[]
+instrStoreSelf = InstrStoreMemory (MSISelf singNumericType)

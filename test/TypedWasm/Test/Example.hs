@@ -78,6 +78,28 @@ exampleTest testName mb examples = testCaseSteps testName $ \step -> do
         o' <- call is
         o @=? o'
 
+memoryTests :: TestTree
+memoryTests =
+    testGroup
+        "Store and Load memory"
+        [helper SNI32, helper SNI64, helper SNF32, helper SNF64]
+  where
+    helper ::
+        forall vt.
+        (SingNumericType vt, SingValueType vt) =>
+        SNumericType vt ->
+        TestTree
+    helper sTy =
+        exampleTest @'[vt] @vt
+            (show sTy)
+            ( (,Memory 1 1)
+                <$> addFunction
+                    ( functionDef @'[] $ \HEmpty (HSingle i) ->
+                        12 >. InstrGetRef i >. instrStoreSelf >. 12 >. instrLoadSelf
+                    )
+            )
+            [(HSingle 123, 123), (HSingle 321, 321)]
+
 knownTests :: TestTree
 knownTests =
     testGroup
@@ -108,4 +130,5 @@ knownTests =
                 (\(i, o) -> (HSingle (CRI32 i), CRI32 o))
                 [(0, 1), (1, 2), (2, 4), (3, 8)]
             )
+        , memoryTests
         ]

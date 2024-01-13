@@ -5,7 +5,6 @@ import Data.Proxy
 import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Generics (Generic)
-import Prelude.Singletons
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.List
 import TypedWasm.Definition.Memory
@@ -79,6 +78,24 @@ renderFuncType HEmpty HEmpty = []
 renderFuncType HEmpty (HCons s HEmpty) = [atomList ["result", numericTypeFramgnet s]]
 renderFuncType _ _ = error "Need more func types"
 
+convertMemoryStoreInstruction :: MemStoreInstruction vt -> Text
+convertMemoryStoreInstruction (MSISelf sTy) = numericTypeFramgnet sTy <> ".store"
+convertMemoryStoreInstruction (MSIInt8 sTy) = numericTypeFramgnet (sIntegralTypeToNumeric sTy) <> ".store8"
+convertMemoryStoreInstruction (MSIInt16 sTy) = numericTypeFramgnet (sIntegralTypeToNumeric sTy) <> ".store16"
+convertMemoryStoreInstruction MSIInt32 = "i64.store32"
+
+convertMemoryLoadInstruction :: MemLoadInstruction vt -> Text
+convertMemoryLoadInstruction (MLISelf sTy) = numericTypeFramgnet sTy <> ".load"
+convertMemoryLoadInstruction (MLIInt8 sTy sign) =
+    numericTypeFramgnet (sIntegralTypeToNumeric sTy)
+        <> ".load8"
+        <> signedFragment sign
+convertMemoryLoadInstruction (MLIInt16 sTy sign) =
+    numericTypeFramgnet (sIntegralTypeToNumeric sTy)
+        <> ".load16"
+        <> signedFragment sign
+convertMemoryLoadInstruction (MLIInt32 sign) = "i64.load32" <> signedFragment sign
+
 data LocalOrGlobal = Local | Global
 
 data SExprTarget
@@ -142,6 +159,8 @@ convertInstruction _ (InstrGetRef (SExprTargetRef Local n)) = [atomList ["local.
 convertInstruction _ (InstrGetRef (SExprTargetRef Global n)) = [atomList ["global.get", T.pack (show n)]]
 convertInstruction _ (InstrSetRef (SExprTargetRef Local n)) = [atomList ["local.set", T.pack (show n)]]
 convertInstruction _ (InstrSetRef (SExprTargetRef Global n)) = [atomList ["global.set", T.pack (show n)]]
+convertInstruction _ (InstrLoadMemory mli) = [SExprAtom $ convertMemoryLoadInstruction mli]
+convertInstruction _ (InstrStoreMemory mli) = [SExprAtom $ convertMemoryStoreInstruction mli]
 
 data FunctionTypeDefinition = FunctionTypeDefinition
     { ftdParams :: [ValueType]

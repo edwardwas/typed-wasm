@@ -179,9 +179,13 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         Instruction wt is os ->
         Instruction wt is os ->
         Instruction wt ('I32 ': is) os
+    -- | Put the value of a ref on stack
     InstrGetRef :: TargetRef wt mut t -> Instruction wt '[] '[t]
+    -- | Update the value of a  ref
     InstrSetRef :: TargetRef wt 'Mutable t -> Instruction wt '[t] '[]
+    -- | Load something from memory
     InstrLoadMemory :: MemLoadInstruction t -> Instruction wt '[I32] '[t]
+    -- | Write something to memory
     InstrStoreMemory :: MemStoreInstruction t -> Instruction wt '[I32, t] '[]
 
 -- | An infix definition of `InstrSequence`
@@ -275,8 +279,10 @@ instrWhen ::
     Instruction wt '[] '[]
 instrWhen check body = check >. InstrIf body InstrNOP
 
+-- | Polymorphically load a value from memory
 instrLoadSelf :: (SingNumericType t) => Instruction wt '[I32] '[t]
 instrLoadSelf = InstrLoadMemory (MLISelf singNumericType)
 
+-- | Polymorphically write a value to memory
 instrStoreSelf :: (SingNumericType t) => Instruction wt '[I32, t] '[]
 instrStoreSelf = InstrStoreMemory (MSISelf singNumericType)

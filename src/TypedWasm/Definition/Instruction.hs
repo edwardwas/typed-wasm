@@ -106,6 +106,17 @@ data FloatingBinaryOp
     deriving stock (Eq, Show, Generic)
     deriving anyclass (Enumerable)
 
+-- | Comparisons on integral values
+data IntegralComparisons
+    = ICEqual
+    | ICNotEqual
+    | ICLessThan Signed
+    | ICGreaterThan Signed
+    | ICLessThanOrEq Signed
+    | ICGreateThanOrEq Signed
+    deriving stock (Eq, Show, Generic)
+    deriving anyclass (Enumerable)
+
 {- | Tag whether a reference is mutable or not.
 
 This is often used at the type level
@@ -157,6 +168,11 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         SIntegralType t ->
         IntegralBinaryOp ->
         Instruction wt '[t, t] '[t]
+    -- | Compare two integral values
+    InstrIntegralCOmpar ::
+        SIntegralType t ->
+        IntegralComparisons ->
+        Instruction wt '[t, t] '[I32]
     -- | Perform an floating unary operation
     InstrFloatingUnary ::
         SFloatingType t ->

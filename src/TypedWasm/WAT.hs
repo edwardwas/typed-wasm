@@ -156,6 +156,9 @@ convertInstruction _ (InstrIntegralCompare sit cp) =
             <> integralComparisonFragment cp
         )
     ]
+convertInstruction _ (InstrEqualZero sit) =
+    [ SExprAtom (numericTypeFramgnet (sIntegralTypeToNumeric sit) <> ".eqz")
+    ]
 convertInstruction jd (InstrBreak (SExprTargetJumpLabel n)) =
     let targetNum = jd - n - 1
      in [atomList ["br", T.pack (show targetNum)]]

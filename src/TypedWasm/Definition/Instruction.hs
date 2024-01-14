@@ -173,6 +173,10 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         SIntegralType t ->
         IntegralComparison ->
         Instruction wt '[t, t] '[I32]
+    -- | Check if a value equals zero
+    InstrEqualZero ::
+        SIntegralType t ->
+        Instruction wt '[t] '[I32]
     -- | Perform an floating unary operation
     InstrFloatingUnary ::
         SFloatingType t ->

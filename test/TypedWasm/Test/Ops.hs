@@ -152,3 +152,18 @@ integralComparisonTests =
                 )
                 $ integralComparisonExamples cop
             )
+
+integralEqZeroTests :: TestTree
+integralEqZeroTests = testGroup "Equal Zero" [helper SI32, helper SI64]
+  where
+    helper :: forall vt. (SingNumericType vt, SingValueType vt) => SIntegralType vt -> TestTree
+    helper sty =
+        exampleTest
+            (show sty)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt] @'[ 'I32]
+                        $ \HEmpty (HSingle i) -> InstrGetRef i >. InstrEqualZero sty
+                    )
+            )
+            [(HSingle 0, 1), (HSingle 1, 0), (HSingle 100, 0)]

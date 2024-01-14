@@ -14,6 +14,7 @@ main =
                 [ integralUnaryTests
                 , integralBinaryTests
                 , integralComparisonTests
+                , integralEqZeroTests
                 ]
             , knownTests
             ]

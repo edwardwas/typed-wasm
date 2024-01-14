@@ -191,9 +191,12 @@ convertFunctionDef (FunctionDef sLocals sArgs k) =
                 <> convertInstruction 0 bodyInstrs
             )
 
+-- | When converting modules, we need to keep track of some information as we walk the module.
 data ModuleConversionInfo = ModuleConversionInfo
     { functionCount :: Int
+    -- ^ The number of functions we've created
     , globalCount :: Int
+    -- ^ The number of globals we've created
     }
     deriving (Eq, Show)
 

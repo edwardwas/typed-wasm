@@ -43,9 +43,24 @@ integralBinaryExamples (IBOShiftRight _) = map (\n -> (128, n, shift 128 $ negat
 integralBinaryExamples IBORotateLeft = map (\n -> (128, n, rotate 128 n)) [0 .. 8]
 integralBinaryExamples IBORotateRight = [(123, 0, 123)]
 
+integralComparisonExamples :: IntegralComparison -> [(Int, Int, Bool)]
+integralComparisonExamples c =
+    let bf = case c of
+            ICEqual -> (==)
+            ICNotEqual -> (/=)
+            ICLessThan _ -> (<)
+            ICGreaterThan _ -> (>)
+            ICLessThanOrEq _ -> (<=)
+            ICGreaterThanOrEq _ -> (>=)
+     in map (\(a, b) -> (a, b, bf a b)) [(0, 0), (1, 1), (123, 321), (321, 123)]
+
 intToConstantRep :: SIntegralType t -> Int -> ConstantRep t
 intToConstantRep SI32 = CRI32 . fromIntegral
 intToConstantRep SI64 = CRI64 . fromIntegral
+
+boolToI32 :: Bool -> ConstantRep 'I32
+boolToI32 True = 1
+boolToI32 False = 0
 
 integralUnaryTests :: TestTree
 integralUnaryTests =
@@ -98,4 +113,42 @@ integralBinaryTests =
                     )
                 )
                 $ integralBinaryExamples ibo
+            )
+
+integralComparisonTests :: TestTree
+integralComparisonTests =
+    testGroup "Integral Comparisons"
+        $ map
+            ( \op ->
+                testGroup
+                    (show op)
+                    [helper op SI32, helper op SI64]
+            )
+            allMembers
+  where
+    helper ::
+        forall vt.
+        (SingValueType vt, SingNumericType vt) =>
+        IntegralComparison ->
+        SIntegralType vt ->
+        TestTree
+    helper cop sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt, vt] @'[ 'I32]
+                        $ \HEmpty (a :* b) ->
+                            InstrGetRef a
+                                >. InstrGetRef b
+                                >. InstrIntegralCompare sTy cop
+                    )
+            )
+            ( map
+                ( \(a, b, c) ->
+                    ( intToConstantRep sTy a :* intToConstantRep sTy b
+                    , boolToI32 c
+                    )
+                )
+                $ integralComparisonExamples cop
             )

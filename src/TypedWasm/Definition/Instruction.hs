@@ -107,13 +107,13 @@ data FloatingBinaryOp
     deriving anyclass (Enumerable)
 
 -- | Comparisons on integral values
-data IntegralComparisons
+data IntegralComparison
     = ICEqual
     | ICNotEqual
     | ICLessThan Signed
     | ICGreaterThan Signed
     | ICLessThanOrEq Signed
-    | ICGreateThanOrEq Signed
+    | ICGreaterThanOrEq Signed
     deriving stock (Eq, Show, Generic)
     deriving anyclass (Enumerable)
 
@@ -169,9 +169,9 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         IntegralBinaryOp ->
         Instruction wt '[t, t] '[t]
     -- | Compare two integral values
-    InstrIntegralCOmpar ::
+    InstrIntegralCompare ::
         SIntegralType t ->
-        IntegralComparisons ->
+        IntegralComparison ->
         Instruction wt '[t, t] '[I32]
     -- | Perform an floating unary operation
     InstrFloatingUnary ::

@@ -13,6 +13,7 @@ main =
                 "Operation test"
                 [ integralUnaryTests
                 , integralBinaryTests
+                , integralComparisonTests
                 ]
             , knownTests
             ]

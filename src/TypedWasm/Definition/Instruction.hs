@@ -20,6 +20,12 @@ data ConstantRep (vt :: ValueType) where
 deriving instance Eq (ConstantRep vt)
 deriving instance Show (ConstantRep vt)
 
+typeOfConstant :: ConstantRep vt -> SNumericType vt
+typeOfConstant (CRI32 _) = SNI32
+typeOfConstant (CRF32 _) = SNF32
+typeOfConstant (CRI64 _) = SNI64
+typeOfConstant (CRF64 _) = SNF64
+
 instance (SingNumericType vt) => Num (ConstantRep vt) where
     fromInteger a = case singNumericType @vt of
         SNI32 -> CRI32 $ fromInteger a

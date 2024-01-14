@@ -191,10 +191,34 @@ convertFunctionDef (FunctionDef sLocals sArgs k) =
                 <> convertInstruction 0 bodyInstrs
             )
 
+-- | When converting modules, we need to keep track of some information as we walk the module.
+data ModuleConversionInfo = ModuleConversionInfo
+    { functionCount :: Int
+    -- ^ The number of functions we've created
+    , globalCount :: Int
+    -- ^ The number of globals we've created
+    }
+    deriving (Eq, Show)
+
+increaseFunctionCount :: ModuleConversionInfo -> ModuleConversionInfo
+increaseFunctionCount mci = mci{functionCount = succ $ functionCount mci}
+
+increaseGlobalCount :: ModuleConversionInfo -> ModuleConversionInfo
+increaseGlobalCount mci = mci{globalCount = succ $ globalCount mci}
+
 convertModule :: ModuleDef SExprTarget -> SExpr
-convertModule md = SExprList ("module" : helper 0 md)
+convertModule md =
+    SExprList
+        ( "module"
+            : helper
+                ModuleConversionInfo
+                    { functionCount = 0
+                    , globalCount = 0
+                    }
+                md
+        )
   where
-    helper :: Int -> ModuleDef SExprTarget -> [SExpr]
+    helper :: ModuleConversionInfo -> ModuleDef SExprTarget -> [SExpr]
     helper _ (MDBase mem) = case mem of
         NoMemory -> []
         Memory minSize maxSize ->
@@ -204,9 +228,11 @@ convertModule md = SExprList ("module" : helper 0 md)
                 , T.pack $ show maxSize
                 ]
             ]
-    helper funcCount (MDAddFunction fd k) =
+    helper mci (MDAddFunction fd k) =
         convertFunctionDef fd
-            : helper (succ funcCount) (k $ SExprTargetFunc funcCount)
+            : helper
+                (increaseFunctionCount mci)
+                (k $ SExprTargetFunc $ functionCount mci)
     helper funcCount (MDExportFunction name (SExprTargetFunc n) next) =
         SExprList
             [ "export"
@@ -214,3 +240,15 @@ convertModule md = SExprList ("module" : helper 0 md)
             , atomList ["func", T.pack $ show n]
             ]
             : helper funcCount next
+    helper mci (MDGlobalConstant cr k) =
+        SExprList
+            [ "global"
+            , SExprAtom $ numericTypeFramgnet $ typeOfConstant cr
+            , atomList
+                [ numericTypeFramgnet (typeOfConstant cr) <> ".const"
+                , constantRepFragment cr
+                ]
+            ]
+            : helper
+                (increaseGlobalCount mci)
+                (k $ SExprTargetRef Global $ globalCount mci)

@@ -39,6 +39,10 @@ data ModuleDef wt where
         FunctionDef wt is os ->
         (TargetFunc wt is os -> ModuleDef wt) ->
         ModuleDef wt
+    MDGlobalConstant ::
+        ConstantRep v ->
+        (TargetRef wt 'Immutable v -> ModuleDef wt) ->
+        ModuleDef wt
     MDExportFunction :: Text -> TargetFunc wt is os -> ModuleDef wt -> ModuleDef wt
 
 newtype ModuleBuilder wt a = ModuleBuilder (Cont (ModuleDef wt) a)
@@ -52,6 +56,10 @@ addFunction ::
     FunctionDef wt is os ->
     ModuleBuilder wt (TargetFunc wt is os)
 addFunction fd = ModuleBuilder (cont $ MDAddFunction fd)
+
+-- | Add a global constant to a module
+globalConstant :: ConstantRep v -> ModuleBuilder wt (TargetRef wt Immutable v)
+globalConstant cr = ModuleBuilder (cont $ MDGlobalConstant cr)
 
 exportFunction :: Text -> TargetFunc wt is os -> ModuleBuilder wt ()
 exportFunction name func = ModuleBuilder (cont $ \f -> MDExportFunction name func $ f ())

@@ -6,6 +6,7 @@ import Data.Word (Word32)
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.Types
 import TypedWasm.Util.List
+import TypedWasm.Definition.Constant
 
 data FunctionDef wt is os where
     FunctionDef ::

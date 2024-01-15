@@ -10,6 +10,7 @@ import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.Util.List
 import TypedWasm.Util.SExpr
+import TypedWasm.Definition.Constant
 
 numericTypeFramgnet :: SNumericType t -> Text
 numericTypeFramgnet SNI32 = "i32"
@@ -63,6 +64,14 @@ floatingUnaryOpFragment FUOFloor = "floor"
 floatingUnaryOpFragment FUOTruncate = "trunc"
 floatingUnaryOpFragment FUONearest = "nearest"
 
+integralComparisonFragment :: IntegralComparison -> Text
+integralComparisonFragment ICEqual = "eq"
+integralComparisonFragment ICNotEqual = "ne"
+integralComparisonFragment (ICLessThan s) = "lt" <> signedFragment s
+integralComparisonFragment (ICGreaterThan s) = "gt" <> signedFragment s
+integralComparisonFragment (ICLessThanOrEq s) = "le" <> signedFragment s
+integralComparisonFragment (ICGreaterThanOrEq s) = "ge" <> signedFragment s
+
 floatingBinaryOpFragment :: FloatingBinaryOp -> Text
 floatingBinaryOpFragment FBOAdd = "add"
 floatingBinaryOpFragment FBOSub = "sub"
@@ -71,6 +80,14 @@ floatingBinaryOpFragment FBODiv = "div"
 floatingBinaryOpFragment FBOMin = "min"
 floatingBinaryOpFragment FBOMax = "max"
 floatingBinaryOpFragment FBOCopySign = "copysign"
+
+floatingComparisonFragment :: FloatingComparison -> Text
+floatingComparisonFragment FCEqual = "eq"
+floatingComparisonFragment FCNotEqual = "ne"
+floatingComparisonFragment FCLessThan = "lt"
+floatingComparisonFragment FCGreaterThan = "gt"
+floatingComparisonFragment FCLessThanOrEq = "le"
+floatingComparisonFragment FCGreaterThanOrEq = "ge"
 
 renderFuncType :: HList SNumericType is -> HList SNumericType os -> [SExpr]
 renderFuncType HEmpty HEmpty = []
@@ -118,19 +135,45 @@ convertInstruction _ (InstrConst snt n) =
     ]
 convertInstruction _ (InstrIntegralUnary sit op) =
     [ SExprAtom
-        (numericTypeFramgnet (sIntegralTypeToNumeric sit) <> "." <> integralUnaryOpFragment op)
+        ( numericTypeFramgnet (sIntegralTypeToNumeric sit)
+            <> "."
+            <> integralUnaryOpFragment op
+        )
     ]
 convertInstruction _ (InstrIntegralBinary sit op) =
     [ SExprAtom
         (numericTypeFramgnet (sIntegralTypeToNumeric sit) <> "." <> integralBinaryOpFragment op)
     ]
-convertInstruction _ (InstrFloatingUnary sit op) =
+convertInstruction _ (InstrFloatingUnary sft op) =
     [ SExprAtom
-        (numericTypeFramgnet (sFloatingTypeToNumeric sit) <> "." <> floatingUnaryOpFragment op)
+        ( numericTypeFramgnet (sFloatingTypeToNumeric sft)
+            <> "."
+            <> floatingUnaryOpFragment op
+        )
     ]
-convertInstruction _ (InstrFloatingBinary sit op) =
+convertInstruction _ (InstrFloatingBinary sft op) =
     [ SExprAtom
-        (numericTypeFramgnet (sFloatingTypeToNumeric sit) <> "." <> floatingBinaryOpFragment op)
+        ( numericTypeFramgnet (sFloatingTypeToNumeric sft)
+            <> "."
+            <> floatingBinaryOpFragment op
+        )
+    ]
+convertInstruction _ (InstrIntegralCompare sit cp) =
+    [ SExprAtom
+        ( numericTypeFramgnet (sIntegralTypeToNumeric sit)
+            <> "."
+            <> integralComparisonFragment cp
+        )
+    ]
+convertInstruction _ (InstrFloatingCompare sft cp) =
+    [ SExprAtom
+        ( numericTypeFramgnet (sFloatingTypeToNumeric sft)
+            <> "."
+            <> floatingComparisonFragment cp
+        )
+    ]
+convertInstruction _ (InstrEqualZero sit) =
+    [ SExprAtom (numericTypeFramgnet (sIntegralTypeToNumeric sit) <> ".eqz")
     ]
 convertInstruction jd (InstrBreak (SExprTargetJumpLabel n)) =
     let targetNum = jd - n - 1

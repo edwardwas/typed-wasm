@@ -2,6 +2,7 @@ module TypedWasm.Test.Ops where
 
 import Data.Bits
 import Test.Tasty
+import TypedWasm.Definition.Constant
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module
@@ -43,9 +44,35 @@ integralBinaryExamples (IBOShiftRight _) = map (\n -> (128, n, shift 128 $ negat
 integralBinaryExamples IBORotateLeft = map (\n -> (128, n, rotate 128 n)) [0 .. 8]
 integralBinaryExamples IBORotateRight = [(123, 0, 123)]
 
+integralComparisonExamples :: IntegralComparison -> [(Int, Int, Bool)]
+integralComparisonExamples c =
+    let bf = case c of
+            ICEqual -> (==)
+            ICNotEqual -> (/=)
+            ICLessThan _ -> (<)
+            ICGreaterThan _ -> (>)
+            ICLessThanOrEq _ -> (<=)
+            ICGreaterThanOrEq _ -> (>=)
+     in map (\(a, b) -> (a, b, bf a b)) [(0, 0), (1, 1), (123, 321), (321, 123)]
+
+floatingComparisonExamples :: FloatingComparison -> [(Int, Int, Bool)]
+floatingComparisonExamples c =
+    let bf = case c of
+            FCEqual -> (==)
+            FCNotEqual -> (/=)
+            FCLessThan -> (<)
+            FCGreaterThan -> (>)
+            FCLessThanOrEq -> (<=)
+            FCGreaterThanOrEq -> (>=)
+     in map (\(a, b) -> (a, b, bf a b)) [(0, 0), (1, 1), (123, 321), (321, 123)]
+
 intToConstantRep :: SIntegralType t -> Int -> ConstantRep t
 intToConstantRep SI32 = CRI32 . fromIntegral
 intToConstantRep SI64 = CRI64 . fromIntegral
+
+boolToI32 :: Bool -> ConstantRep 'I32
+boolToI32 True = 1
+boolToI32 False = 0
 
 integralUnaryTests :: TestTree
 integralUnaryTests =
@@ -99,3 +126,94 @@ integralBinaryTests =
                 )
                 $ integralBinaryExamples ibo
             )
+
+integralComparisonTests :: TestTree
+integralComparisonTests =
+    testGroup "Integral Comparisons"
+        $ map
+            ( \op ->
+                testGroup
+                    (show op)
+                    [helper op SI32, helper op SI64]
+            )
+            allMembers
+  where
+    helper ::
+        forall vt.
+        (SingValueType vt, SingNumericType vt) =>
+        IntegralComparison ->
+        SIntegralType vt ->
+        TestTree
+    helper cop sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt, vt] @'[ 'I32]
+                        $ \HEmpty (a :* b) ->
+                            InstrGetRef a
+                                >. InstrGetRef b
+                                >. InstrIntegralCompare sTy cop
+                    )
+            )
+            ( map
+                ( \(a, b, c) ->
+                    ( intToConstantRep sTy a :* intToConstantRep sTy b
+                    , boolToI32 c
+                    )
+                )
+                $ integralComparisonExamples cop
+            )
+
+floatingComparisonTests :: TestTree
+floatingComparisonTests =
+    testGroup "Floating Comparisons"
+        $ map
+            ( \op ->
+                testGroup
+                    (show op)
+                    [helper op SF32, helper op SF64]
+            )
+            allMembers
+  where
+    helper ::
+        forall vt.
+        (SingFloatingType vt) =>
+        FloatingComparison ->
+        SFloatingType vt ->
+        TestTree
+    helper cop sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt, vt] @'[ 'I32]
+                        $ \HEmpty (a :* b) ->
+                            InstrGetRef a
+                                >. InstrGetRef b
+                                >. InstrFloatingCompare sTy cop
+                    )
+            )
+            ( map
+                ( \(a, b, c) ->
+                    ( fromIntegral a :* fromIntegral b
+                    , boolToI32 c
+                    )
+                )
+                $ floatingComparisonExamples cop
+            )
+
+integralEqZeroTests :: TestTree
+integralEqZeroTests = testGroup "Equal Zero" [helper SI32, helper SI64]
+  where
+    helper :: forall vt. (SingNumericType vt, SingValueType vt) => SIntegralType vt -> TestTree
+    helper sty =
+        exampleTest
+            (show sty)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt] @'[ 'I32]
+                        $ \HEmpty (HSingle i) -> InstrGetRef i >. InstrEqualZero sty
+                    )
+            )
+            [(HSingle 0, 1), (HSingle 1, 0), (HSingle 100, 0)]

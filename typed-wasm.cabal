@@ -44,6 +44,7 @@ library
     , TypedWasm.Definition.Instruction
     , TypedWasm.Definition.Module
     , TypedWasm.Definition.Memory
+    , TypedWasm.Definition.Constant
     , TypedWasm.WAT
     , TypedWasm.Util.Enum
     , TypedWasm.Util.List

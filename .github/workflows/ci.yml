@@ -29,7 +29,7 @@ jobs:
           restore-keys: ${{ env.key }}-
       - name: Install Deps
         run: |
-          cabal build all --only-dependencies
+          cabal build all --only-dependencies --enable-tests
       - name: Save cached dependencies
         uses: actions/cache/save@v3
         if: steps.cache.outputs.cache-hit != 'true'

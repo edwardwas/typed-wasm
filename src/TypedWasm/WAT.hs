@@ -10,6 +10,7 @@ import TypedWasm.Definition.Module
 import TypedWasm.Definition.Types
 import TypedWasm.Util.List
 import TypedWasm.Util.SExpr
+import TypedWasm.Definition.Constant
 
 numericTypeFramgnet :: SNumericType t -> Text
 numericTypeFramgnet SNI32 = "i32"

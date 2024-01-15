@@ -2,6 +2,7 @@ module TypedWasm.Test.Ops where
 
 import Data.Bits
 import Test.Tasty
+import TypedWasm.Definition.Constant
 import TypedWasm.Definition.Instruction
 import TypedWasm.Definition.Memory
 import TypedWasm.Definition.Module

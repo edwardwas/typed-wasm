@@ -53,7 +53,7 @@ data SNumericType (vt :: ValueType) where
 deriving instance Show (SNumericType vt)
 deriving instance Eq (SNumericType vt)
 
-class SingNumericType (vt :: ValueType) where
+class SingValueType vt => SingNumericType (vt :: ValueType) where
     singNumericType :: SNumericType vt
 
 instance SingNumericType 'I32 where
@@ -90,11 +90,14 @@ data SFloatingType (vt :: ValueType) where
     SF32 :: SFloatingType 'F32
     SF64 :: SFloatingType 'F64
 
+deriving instance Eq (SFloatingType vt)
+deriving instance Show (SFloatingType vt)
+
 sFloatingTypeToNumeric :: SFloatingType vt -> SNumericType vt
 sFloatingTypeToNumeric SF32 = SNF32
 sFloatingTypeToNumeric SF64 = SNF64
 
-class SingNumericType vt => SingFloatingType (vt :: ValueType) where
+class (SingNumericType vt) => SingFloatingType (vt :: ValueType) where
     singFloating :: SFloatingType vt
 
 instance SingFloatingType 'F32 where

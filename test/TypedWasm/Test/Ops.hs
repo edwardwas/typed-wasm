@@ -55,6 +55,17 @@ integralComparisonExamples c =
             ICGreaterThanOrEq _ -> (>=)
      in map (\(a, b) -> (a, b, bf a b)) [(0, 0), (1, 1), (123, 321), (321, 123)]
 
+floatingComparisonExamples :: FloatingComparison -> [(Int, Int, Bool)]
+floatingComparisonExamples c =
+    let bf = case c of
+            FCEqual -> (==)
+            FCNotEqual -> (/=)
+            FCLessThan -> (<)
+            FCGreaterThan -> (>)
+            FCLessThanOrEq -> (<=)
+            FCGreaterThanOrEq -> (>=)
+     in map (\(a, b) -> (a, b, bf a b)) [(0, 0), (1, 1), (123, 321), (321, 123)]
+
 intToConstantRep :: SIntegralType t -> Int -> ConstantRep t
 intToConstantRep SI32 = CRI32 . fromIntegral
 intToConstantRep SI64 = CRI64 . fromIntegral
@@ -152,6 +163,44 @@ integralComparisonTests =
                     )
                 )
                 $ integralComparisonExamples cop
+            )
+
+floatingComparisonTests :: TestTree
+floatingComparisonTests =
+    testGroup "Floating Comparisons"
+        $ map
+            ( \op ->
+                testGroup
+                    (show op)
+                    [helper op SF32, helper op SF64]
+            )
+            allMembers
+  where
+    helper ::
+        forall vt.
+        (SingFloatingType vt) =>
+        FloatingComparison ->
+        SFloatingType vt ->
+        TestTree
+    helper cop sTy =
+        exampleTest
+            (show sTy)
+            ( (,NoMemory)
+                <$> addFunction
+                    ( functionDef @'[] @'[vt, vt] @'[ 'I32]
+                        $ \HEmpty (a :* b) ->
+                            InstrGetRef a
+                                >. InstrGetRef b
+                                >. InstrFloatingCompare sTy cop
+                    )
+            )
+            ( map
+                ( \(a, b, c) ->
+                    ( fromIntegral a :* fromIntegral b
+                    , boolToI32 c
+                    )
+                )
+                $ floatingComparisonExamples cop
             )
 
 integralEqZeroTests :: TestTree

@@ -15,6 +15,7 @@ main =
                 , integralBinaryTests
                 , integralComparisonTests
                 , integralEqZeroTests
+                , floatingComparisonTests
                 ]
             , knownTests
             ]

@@ -80,6 +80,14 @@ floatingBinaryOpFragment FBOMin = "min"
 floatingBinaryOpFragment FBOMax = "max"
 floatingBinaryOpFragment FBOCopySign = "copysign"
 
+floatingComparisonFragment :: FloatingComparison -> Text
+floatingComparisonFragment FCEqual = "eq"
+floatingComparisonFragment FCNotEqual = "ne"
+floatingComparisonFragment FCLessThan = "lt"
+floatingComparisonFragment FCGreaterThan = "gt"
+floatingComparisonFragment FCLessThanOrEq = "le"
+floatingComparisonFragment FCGreaterThanOrEq = "ge"
+
 renderFuncType :: HList SNumericType is -> HList SNumericType os -> [SExpr]
 renderFuncType HEmpty HEmpty = []
 renderFuncType HEmpty (HCons s HEmpty) = [atomList ["result", numericTypeFramgnet s]]
@@ -154,6 +162,13 @@ convertInstruction _ (InstrIntegralCompare sit cp) =
         ( numericTypeFramgnet (sIntegralTypeToNumeric sit)
             <> "."
             <> integralComparisonFragment cp
+        )
+    ]
+convertInstruction _ (InstrFloatingCompare sft cp) =
+    [ SExprAtom
+        ( numericTypeFramgnet (sFloatingTypeToNumeric sft)
+            <> "."
+            <> floatingComparisonFragment cp
         )
     ]
 convertInstruction _ (InstrEqualZero sit) =

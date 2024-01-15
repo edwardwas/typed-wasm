@@ -117,6 +117,17 @@ data IntegralComparison
     deriving stock (Eq, Show, Generic)
     deriving anyclass (Enumerable)
 
+-- | Comparisons on floating values
+data FloatingComparison
+    = FCEqual
+    | FCNotEqual
+    | FCLessThan
+    | FCGreaterThan
+    | FCLessThanOrEq
+    | FCGreaterThanOrEq
+    deriving stock (Eq, Show, Generic)
+    deriving anyclass (Enumerable)
+
 {- | Tag whether a reference is mutable or not.
 
 This is often used at the type level
@@ -187,6 +198,11 @@ data Instruction (wt :: Type) (is :: [ValueType]) (os :: [ValueType]) where
         SFloatingType t ->
         FloatingBinaryOp ->
         Instruction wt '[t, t] '[t]
+    -- | Compare two floating point values
+    InstrFloatingCompare ::
+        SFloatingType t ->
+        FloatingComparison ->
+        Instruction wt '[t, t] '[I32]
     -- | Break and jump to this jump label. Instructions after this point will not be ran
     InstrBreak :: TargetJumpLabel wt xs -> Instruction wt xs '[]
     -- | Construct a loop.

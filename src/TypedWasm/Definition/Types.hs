@@ -77,7 +77,7 @@ sIntegralTypeToNumeric :: SIntegralType vt -> SNumericType vt
 sIntegralTypeToNumeric SI32 = SNI32
 sIntegralTypeToNumeric SI64 = SNI64
 
-class SingIntegralType (vt :: ValueType) where
+class (SingNumericType vt) => SingIntegralType (vt :: ValueType) where
     singIntegral :: SIntegralType vt
 
 instance SingIntegralType 'I32 where
@@ -94,7 +94,7 @@ sFloatingTypeToNumeric :: SFloatingType vt -> SNumericType vt
 sFloatingTypeToNumeric SF32 = SNF32
 sFloatingTypeToNumeric SF64 = SNF64
 
-class SingFloatingType (vt :: ValueType) where
+class SingNumericType vt => SingFloatingType (vt :: ValueType) where
     singFloating :: SFloatingType vt
 
 instance SingFloatingType 'F32 where
